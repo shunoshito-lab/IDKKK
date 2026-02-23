@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>G-Eazy ft. Christoph Andersson — Tumblr Girls</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Playfair+Display:ital,wght@0,400;0,900;1,400;1,900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --gold: #D4A843;
+    --ice: #8ECFED;
+    --crimson: #C8354A;
+    --white: #F0EDE8;
+    --bg: #050507;
+    --mid: #0D0D14;
+    --verse-color: #D4A843;
+    --chorus-color: #8ECFED;
+    --bridge-color: #C8354A;
+  }
+
+  html, body {
+    width: 100%; height: 100%;
+    background: var(--bg);
+    overflow: hidden;
+    font-family: 'Space Mono', monospace;
+    color: var(--white);
+    cursor: none;
+  }
+
+  /* Grain overlay */
+  body::before {
+    content: '';
+    position: fixed; inset: 0; z-index: 9999;
+    pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+    background-size: 200px;
+    opacity: 0.35;
+  }
+
+  /* Custom cursor */
+  .cursor {
+    position: fixed; z-index: 10000;
+    width: 12px; height: 12px;
+    background: var(--gold);
+    border-radius: 50%;
+    pointer-events: none;
+    transform: translate(-50%, -50%);
+    transition: transform 0.1s ease, background 0.3s;
+    mix-blend-mode: screen;
+  }
+
+  /* Background gradient orbs */
+  #bg-orb-1, #bg-orb-2, #bg-orb-3 {
+    position: fixed; border-radius: 50%;
+    filter: blur(120px);
+    pointer-events: none;
+    transition: all 3s ease;
+    opacity: 0.18;
+  }
+  #bg-orb-1 { width: 600px; height: 600px; background: #D4A843; top: -200px; left: -200px; }
+  #bg-orb-2 { width: 500px; height: 500px; background: #8ECFED; bottom: -200px; right: -100px; opacity: 0.1; }
+  #bg-orb-3 { width: 400px; height: 400px; background: #C8354A; top: 50%; left: 50%; transform: translate(-50%,-50%); opacity: 0.06; }
+
+  /* Section label */
+  #section-label {
+    position: fixed; top: 28px; left: 40px; z-index: 100;
+    font-family: 'Space Mono', monospace;
+    font-size: 10px; letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--gold); opacity: 0.6;
+    transition: color 0.8s, opacity 0.8s;
+  }
+
+  /* Artist info */
+  #artist-info {
+    position: fixed; top: 28px; right: 40px; z-index: 100;
+    text-align: right;
+    font-family: 'Space Mono', monospace;
+    font-size: 10px; letter-spacing: 0.2em;
+    opacity: 0.4;
+  }
+  #artist-info strong { display: block; font-size: 11px; letter-spacing: 0.3em; opacity: 1; color: var(--white); }
+
+  /* Progress bar */
+  #progress-track {
+    position: fixed; bottom: 90px; left: 40px; right: 40px; z-index: 100;
+    height: 1px; background: rgba(255,255,255,0.1);
+    cursor: pointer;
+  }
+  #progress-fill {
+    height: 100%; width: 0%;
+    background: linear-gradient(90deg, var(--gold), var(--ice));
+    transition: width 0.5s linear;
+    position: relative;
+  }
+  #progress-fill::after {
+    content: '';
+    position: absolute; right: -3px; top: -3px;
+    width: 7px; height: 7px;
+    background: white; border-radius: 50%;
+  }
+
+  /* Controls */
+  #controls {
+    position: fixed; bottom: 28px; left: 0; right: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: center; gap: 32px;
+  }
+  #play-btn {
+    width: 52px; height: 52px;
+    border: 1.5px solid rgba(255,255,255,0.3);
+    border-radius: 50%;
+    background: rgba(255,255,255,0.04);
+    backdrop-filter: blur(10px);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: border-color 0.3s, background 0.3s, transform 0.2s;
+    color: white;
+  }
+  #play-btn:hover { border-color: var(--gold); transform: scale(1.05); background: rgba(212,168,67,0.1); }
+  #play-btn svg { width: 18px; height: 18px; fill: currentColor; }
+  #time-display { font-size: 11px; letter-spacing: 0.15em; opacity: 0.4; width: 80px; text-align: center; }
+  #file-label {
+    font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase;
+    opacity: 0.3; cursor: pointer;
+    border: 1px solid rgba(255,255,255,0.15); padding: 6px 14px; border-radius: 2px;
+    transition: opacity 0.3s, border-color 0.3s;
+  }
+  #file-label:hover { opacity: 0.7; border-color: var(--gold); }
+  #audio-file { display: none; }
+
+  /* Main lyric stage */
+  #stage {
+    position: fixed; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    overflow: hidden; z-index: 10;
+    padding: 80px 60px 180px;
+  }
+
+  /* Previous line (ghost) */
+  #line-prev {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(14px, 2vw, 22px);
+    font-style: italic;
+    color: rgba(255,255,255,0.12);
+    letter-spacing: 0.06em;
+    text-align: center;
+    margin-bottom: 32px;
+    max-width: 900px;
+    transition: opacity 1s;
+    line-height: 1.4;
+    min-height: 32px;
+  }
+
+  /* Current line words container */
+  #line-current {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(32px, 7vw, 96px);
+    letter-spacing: 0.04em;
+    text-align: center;
+    max-width: 1200px;
+    line-height: 1.05;
+    display: flex; flex-wrap: wrap; justify-content: center;
+    gap: 0.15em;
+    perspective: 800px;
+    min-height: 1.2em;
+  }
+
+  #line-next {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(14px, 2vw, 22px);
+    font-style: italic;
+    color: rgba(255,255,255,0.1);
+    letter-spacing: 0.06em;
+    text-align: center;
+    margin-top: 32px;
+    max-width: 900px;
+    transition: opacity 1s;
+    line-height: 1.4;
+    min-height: 32px;
+  }
+
+  /* Individual word spans */
+  .word {
+    display: inline-block;
+    opacity: 0;
+    transform: translateY(30px) scale(0.7);
+    transition: none;
+    position: relative;
+    cursor: default;
+  }
+
+  .word.active {
+    animation: wordPop 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  }
+
+  /* Animation variants */
+  @keyframes wordPop {
+    0% { opacity: 0; transform: translateY(30px) scale(0.6); }
+    60% { opacity: 1; transform: translateY(-4px) scale(1.05); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  @keyframes wordSlide {
+    0% { opacity: 0; transform: translateX(-40px) skewX(-10deg); }
+    100% { opacity: 1; transform: translateX(0) skewX(0deg); }
+  }
+  @keyframes wordFall {
+    0% { opacity: 0; transform: translateY(-50px) rotateX(60deg); }
+    100% { opacity: 1; transform: translateY(0) rotateX(0deg); }
+  }
+  @keyframes wordGlitch {
+    0% { opacity: 0; transform: translateX(8px) skewX(20deg); filter: blur(4px); }
+    40% { opacity: 1; transform: translateX(-4px) skewX(-5deg); filter: blur(0); }
+    70% { transform: translateX(2px) skewX(2deg); }
+    100% { opacity: 1; transform: translateX(0) skewX(0); }
+  }
+  @keyframes wordSpin {
+    0% { opacity: 0; transform: rotateY(-90deg) scale(0.5); }
+    100% { opacity: 1; transform: rotateY(0deg) scale(1); }
+  }
+  @keyframes wordBounce {
+    0% { opacity: 0; transform: scale(1.8); }
+    50% { opacity: 1; transform: scale(0.95); }
+    75% { transform: scale(1.04); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+  @keyframes wordWave {
+    0% { opacity: 0; transform: translateY(0) rotate(-8deg); }
+    50% { opacity: 1; transform: translateY(-8px) rotate(4deg); }
+    100% { opacity: 1; transform: translateY(0) rotate(0deg); }
+  }
+  @keyframes wordExplode {
+    0% { opacity: 0; transform: scale(3) translateY(10px); filter: blur(8px); }
+    100% { opacity: 1; transform: scale(1) translateY(0); filter: blur(0); }
+  }
+
+  .anim-pop { animation: wordPop 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+  .anim-slide { animation: wordSlide 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards; }
+  .anim-fall { animation: wordFall 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+  .anim-glitch { animation: wordGlitch 0.35s ease forwards; }
+  .anim-spin { animation: wordSpin 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+  .anim-bounce { animation: wordBounce 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+  .anim-wave { animation: wordWave 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+  .anim-explode { animation: wordExplode 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+
+  /* Color classes */
+  .c-gold { color: var(--gold); }
+  .c-ice { color: var(--ice); }
+  .c-crimson { color: var(--crimson); }
+  .c-white { color: var(--white); }
+  .c-dim { color: rgba(240,237,232,0.65); }
+
+  /* Pulse glow on key words */
+  .word.highlight {
+    text-shadow: 0 0 20px currentColor, 0 0 60px currentColor;
+  }
+
+  /* Particle canvas */
+  #particles {
+    position: fixed; inset: 0; z-index: 1; pointer-events: none;
+  }
+
+  /* Upload overlay */
+  #upload-overlay {
+    position: fixed; inset: 0; z-index: 200;
+    background: var(--bg);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 24px;
+  }
+  #upload-overlay h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(48px, 10vw, 120px);
+    letter-spacing: 0.05em;
+    background: linear-gradient(135deg, var(--gold), var(--ice));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    text-align: center;
+    line-height: 1;
+  }
+  #upload-overlay p {
+    font-size: 12px; letter-spacing: 0.25em; text-transform: uppercase;
+    opacity: 0.4; text-align: center;
+  }
+  #upload-overlay label {
+    margin-top: 20px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px; letter-spacing: 0.2em;
+    border: 1.5px solid var(--gold); color: var(--gold);
+    padding: 14px 40px; cursor: pointer;
+    transition: background 0.3s, color 0.3s;
+  }
+  #upload-overlay label:hover { background: var(--gold); color: var(--bg); }
+  #auto-btn {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase;
+    opacity: 0.3; cursor: pointer; background: none; border: none; color: white;
+    margin-top: 8px; text-decoration: underline;
+  }
+  #auto-btn:hover { opacity: 0.7; }
+
+  /* Beat pulse ring */
+  .beat-ring {
+    position: fixed; top: 50%; left: 50%; z-index: 2;
+    width: 0; height: 0;
+    border-radius: 50%;
+    border: 1px solid var(--gold);
+    transform: translate(-50%, -50%);
+    animation: beatRing 0.8s ease-out forwards;
+    pointer-events: none;
+    opacity: 0.3;
+  }
+  @keyframes beatRing {
+    0% { width: 0; height: 0; opacity: 0.5; }
+    100% { width: 200vmax; height: 200vmax; opacity: 0; }
+  }
+
+  /* Section flash */
+  .section-flash {
+    position: fixed; inset: 0; z-index: 5; pointer-events: none;
+    animation: sectionFlash 0.6s ease forwards;
+  }
+  @keyframes sectionFlash {
+    0% { opacity: 0.15; }
+    100% { opacity: 0; }
+  }
+</style>
+</head>
+<body>
+
+<div class="cursor" id="cursor"></div>
+<canvas id="particles"></canvas>
+
+<div id="bg-orb-1"></div>
+<div id="bg-orb-2"></div>
+<div id="bg-orb-3"></div>
+
+<!-- Upload overlay -->
+<div id="upload-overlay">
+  <h1>Tumblr<br>Girls</h1>
+  <p>G‑Eazy ft. Christoph Andersson</p>
+  <label for="audio-upload-main">Load Audio File</label>
+  <input type="file" id="audio-upload-main" accept="audio/*" style="display:none">
+  <button id="auto-btn">Skip — visualize without audio</button>
+</div>
+
+<!-- Main stage -->
+<div id="section-label">Intro</div>
+<div id="artist-info">
+  <strong>G‑EAZY</strong>
+  ft. Christoph Andersson
+</div>
+
+<div id="stage">
+  <div id="line-prev"></div>
+  <div id="line-current"></div>
+  <div id="line-next"></div>
+</div>
+
+<div id="progress-track">
+  <div id="progress-fill"></div>
+</div>
+
+<div id="controls">
+  <span id="time-display">0:00</span>
+  <button id="play-btn" title="Play / Pause">
+    <svg id="play-icon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+  </button>
+  <label id="file-label" for="audio-file">Load Audio</label>
+  <input type="file" id="audio-file" accept="audio/*">
+</div>
+
+<audio id="audio"></audio>
+
+<script>
+// ── LRC DATA ────────────────────────────────────────────────────────────────
+const LRC_LINES = [
+  { t: 0,      text: '', section: 'intro' },
+  { t: 32.20,  text: "'Cause I'm in love with these Tumblr girls", section: 'verse' },
+  { t: 34.20,  text: 'With skinny waists and drug habits', section: 'verse' },
+  { t: 36.30,  text: 'Pretty faces love status', section: 'verse' },
+  { t: 37.99,  text: "She acts as if she's the baddest", section: 'verse' },
+  { t: 39.78,  text: "Man I swear she's just like tons of girls", section: 'verse' },
+  { t: 42.20,  text: 'She expects the free drinks', section: 'verse' },
+  { t: 44.08,  text: "And I'm successful she thinks", section: 'verse' },
+  { t: 45.70,  text: 'Always comes around when weed stinks', section: 'verse' },
+  { t: 47.64,  text: 'We fuck off and on, off and on', section: 'verse' },
+  { t: 50.10,  text: 'Only ever really fuck off and on', section: 'verse' },
+  { t: 51.78,  text: "Never see her these days 'cause I'm often gone", section: 'verse' },
+  { t: 53.74,  text: "When I'm home off tour never stop for long", section: 'verse' },
+  { t: 55.96,  text: 'Back this week from across the pond', section: 'verse' },
+  { t: 57.90,  text: "Noticed I was close to the block she's on", section: 'verse' },
+  { t: 59.90,  text: 'Elevator to the floor her loft is on', section: 'verse' },
+  { t: 61.84,  text: 'Drinking whiskey, she likes Vodka strong', section: 'verse' },
+  { t: 63.64,  text: "But after we fuck it's over", section: 'verse' },
+  { t: 65.82,  text: "Walked out the door, that's closure", section: 'verse' },
+  { t: 67.78,  text: "No I can't stay here and hold her", section: 'verse' },
+  { t: 69.62,  text: "Tomorrow act like I don't know her", section: 'verse' },
+  { t: 71.72,  text: "Wouldn't ever be here sober", section: 'verse' },
+  { t: 73.70,  text: "Can't tell which one is colder", section: 'verse' },
+  { t: 75.40,  text: "My clothing's on, we both did wrong", section: 'verse' },
+  { t: 77.50,  text: "I gotta go that's what I told her, yeah", section: 'verse' },
+  { t: 81.10,  text: "Uh, she said she can't feel her face", section: 'chorus' },
+  { t: 84.94,  text: "Yeah, right now I can't feel my heart", section: 'chorus' },
+  { t: 88.98,  text: "Ugh, for your feelings there's no place", section: 'chorus' },
+  { t: 92.86,  text: 'Yeah, but you knew that from the start', section: 'chorus' },
+  { t: 96.36,  text: "You and I were made of glass, we'd never last", section: 'chorus' },
+  { t: 100.30, text: "You and I were made of glass, we'd never last", section: 'chorus' },
+  { t: 104.16, text: 'Meant to die, we moved fast and then we crashed', section: 'chorus' },
+  { t: 108.20, text: "You and I were made of glass, we'd never last", section: 'chorus' },
+  { t: 110.80, text: "She's fine as fuck and she knows it", section: 'verse' },
+  { t: 113.02, text: 'Sexy body she shows it', section: 'verse' },
+  { t: 115.00, text: 'Loves the drama she chose it', section: 'verse' },
+  { t: 116.70, text: 'She draws the line then she blows it', section: 'verse' },
+  { t: 118.70, text: 'The most fun I suppose it', section: 'verse' },
+  { t: 120.88, text: "Pops a bottle won't close it", section: 'verse' },
+  { t: 122.84, text: 'Fills a fifth then she throws it', section: 'verse' },
+  { t: 124.54, text: "She pops a bar now she's dozing", section: 'verse' },
+  { t: 126.54, text: "She's hot and cold, hot and cold", section: 'verse' },
+  { t: 128.74, text: "Homie I don't know she's hot and cold", section: 'verse' },
+  { t: 130.74, text: 'Truly the bullshit has gotten old', section: 'verse' },
+  { t: 132.66, text: 'Superficial with a rotten soul', section: 'verse' },
+  { t: 134.64, text: 'Fucking off and on, always stop and go', section: 'verse' },
+  { t: 136.60, text: 'Probably got someone, choose not to know', section: 'verse' },
+  { t: 138.54, text: 'Head to her place then we lock the door', section: 'verse' },
+  { t: 140.56, text: "Making bad calls when I'm off the blow", section: 'verse' },
+  { t: 142.29, text: "Cause she's a bitch, I'm selfish", section: 'verse' },
+  { t: 144.22, text: "Want every girl, can't help it", section: 'verse' },
+  { t: 146.22, text: "And it's tough for me to shelf it", section: 'verse' },
+  { t: 148.20, text: 'It\'s you I see myself with', section: 'verse' },
+  { t: 150.16, text: 'Right now I know you felt it', section: 'verse' },
+  { t: 152.18, text: 'I touched her then she melted', section: 'verse' },
+  { t: 154.10, text: "We shouldn't chill but we do it still", section: 'verse' },
+  { t: 156.02, text: "Gotta play the hand if you dealt it, yeah", section: 'verse' },
+  { t: 159.80, text: "Uh, she said she can't feel her face", section: 'chorus' },
+  { t: 163.70, text: "Yeah, right now I can't feel my heart", section: 'chorus' },
+  { t: 167.68, text: "Ugh, for your feelings there's no place", section: 'chorus' },
+  { t: 171.54, text: 'Yeah, but you knew that from the start', section: 'chorus' },
+  { t: 175.06, text: "You and I were made of glass, we'd never last", section: 'chorus' },
+  { t: 179.02, text: "You and I were made of glass, we'd never last", section: 'chorus' },
+  { t: 182.82, text: 'Meant to die, we moved fast and then we crashed', section: 'chorus' },
+  { t: 186.88, text: "You and I were made of glass, we'd never last", section: 'chorus' },
+  { t: 191.16, text: 'Missing everything you say', section: 'bridge' },
+  { t: 194.84, text: "It's not important what you stand for", section: 'bridge' },
+  { t: 198.86, text: "You're asking will he be the one, I'll be gone before you're done tonight", section: 'bridge' },
+  { t: 206.92, text: 'Waiting for another day', section: 'bridge' },
+  { t: 210.88, text: "You're not getting what you paid for", section: 'bridge' },
+  { t: 214.76, text: "Trying to salvage what's undone and deny you got outrun tonight", section: 'bridge' },
+  { t: 225.14, text: "Never knew her name, they're looking all the same to me", section: 'bridge' },
+  { t: 232.72, text: 'They only chase the fame', section: 'bridge' },
+  { t: 234.76, text: "There's no one left to blame but me", section: 'bridge' },
+];
+
+// Key words to emphasize
+const HIGHLIGHT_WORDS = new Set([
+  'tumblr','girls','love','glass','crash','crashed','heart','face','feel',
+  'never','last','die','fast','cold','hot','baddest','vodka','whiskey',
+  'closure','sober','colder','selfish','melted','fame','blame','soul','rotten'
+]);
+
+// Animation pool
+const ANIMS = ['anim-pop','anim-slide','anim-fall','anim-glitch','anim-spin','anim-bounce','anim-wave','anim-explode'];
+const COLORS_VERSE  = ['c-gold','c-gold','c-white','c-white','c-dim'];
+const COLORS_CHORUS = ['c-ice','c-ice','c-white','c-white','c-dim'];
+const COLORS_BRIDGE = ['c-crimson','c-crimson','c-white','c-white','c-dim'];
+
+function sectionColors(s) {
+  if (s === 'chorus') return COLORS_CHORUS;
+  if (s === 'bridge') return COLORS_BRIDGE;
+  return COLORS_VERSE;
+}
+
+function rnd(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+function fmtTime(s) {
+  const m = Math.floor(s / 60);
+  const sc = Math.floor(s % 60).toString().padStart(2, '0');
+  return `${m}:${sc}`;
+}
+
+// ── PARTICLE SYSTEM ──────────────────────────────────────────────────────────
+const canvas = document.getElementById('particles');
+const ctx = canvas.getContext('2d');
+let particles = [];
+let W, H;
+
+function resizeCanvas() {
+  W = canvas.width = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
+function spawnParticle(x, y, color) {
+  const angle = Math.random() * Math.PI * 2;
+  const speed = 0.5 + Math.random() * 2;
+  particles.push({
+    x, y,
+    vx: Math.cos(angle) * speed,
+    vy: Math.sin(angle) * speed - 1.5,
+    life: 1,
+    decay: 0.008 + Math.random() * 0.012,
+    size: 1 + Math.random() * 3,
+    color
+  });
+}
+
+function spawnBurst(color, count = 12) {
+  const cx = W / 2 + (Math.random() - 0.5) * 200;
+  const cy = H / 2 + (Math.random() - 0.5) * 100;
+  for (let i = 0; i < count; i++) spawnParticle(cx, cy, color);
+}
+
+function drawParticles() {
+  ctx.clearRect(0, 0, W, H);
+  particles = particles.filter(p => p.life > 0);
+  for (const p of particles) {
+    ctx.globalAlpha = p.life * 0.7;
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+    ctx.fill();
+    p.x += p.vx; p.y += p.vy;
+    p.vy += 0.04;
+    p.life -= p.decay;
+  }
+  ctx.globalAlpha = 1;
+  requestAnimationFrame(drawParticles);
+}
+drawParticles();
+
+// Ambient floating particles
+setInterval(() => {
+  if (particles.length < 80) {
+    particles.push({
+      x: Math.random() * W, y: H + 10,
+      vx: (Math.random() - 0.5) * 0.5,
+      vy: -0.4 - Math.random() * 0.8,
+      life: 1, decay: 0.003,
+      size: 0.5 + Math.random() * 1.5,
+      color: ['#D4A843','#8ECFED','#C8354A'][Math.floor(Math.random()*3)]
+    });
+  }
+}, 200);
+
+// ── DOM REFS ─────────────────────────────────────────────────────────────────
+const audio       = document.getElementById('audio');
+const playBtn     = document.getElementById('play-btn');
+const playIcon    = document.getElementById('play-icon');
+const progressFill= document.getElementById('progress-fill');
+const timeDisplay = document.getElementById('time-display');
+const linePrev    = document.getElementById('line-prev');
+const lineCurrent = document.getElementById('line-current');
+const lineNext    = document.getElementById('line-next');
+const sectionLabel= document.getElementById('section-label');
+const orb1 = document.getElementById('bg-orb-1');
+const orb2 = document.getElementById('bg-orb-2');
+const orb3 = document.getElementById('bg-orb-3');
+
+let currentLineIdx = -1;
+let wordTimers = [];
+
+// ── CURSOR ───────────────────────────────────────────────────────────────────
+const cursor = document.getElementById('cursor');
+document.addEventListener('mousemove', e => {
+  cursor.style.left = e.clientX + 'px';
+  cursor.style.top  = e.clientY + 'px';
+});
+
+// ── SECTION VISUALS ──────────────────────────────────────────────────────────
+const SECTION_THEMES = {
+  intro:  { orb1: '#D4A843', orb2: '#8ECFED', label: 'Intro',   labelColor: '#D4A843' },
+  verse:  { orb1: '#D4A843', orb2: '#1a1a2e', label: 'Verse',   labelColor: '#D4A843' },
+  chorus: { orb1: '#8ECFED', orb2: '#8ECFED', label: 'Chorus',  labelColor: '#8ECFED' },
+  bridge: { orb1: '#C8354A', orb2: '#C8354A', label: 'Bridge',  labelColor: '#C8354A' },
+};
+
+function applySection(s) {
+  const theme = SECTION_THEMES[s] || SECTION_THEMES.verse;
+  orb1.style.background = theme.orb1;
+  orb2.style.background = theme.orb2;
+  sectionLabel.textContent = theme.label.toUpperCase();
+  sectionLabel.style.color = theme.labelColor;
+
+  // Flash
+  const flash = document.createElement('div');
+  flash.className = 'section-flash';
+  flash.style.background = theme.orb1;
+  document.body.appendChild(flash);
+  setTimeout(() => flash.remove(), 700);
+}
+
+// ── LYRIC RENDERING ──────────────────────────────────────────────────────────
+function renderLine(idx) {
+  // Clear word timers
+  wordTimers.forEach(clearTimeout);
+  wordTimers = [];
+  lineCurrent.innerHTML = '';
+
+  if (idx < 0 || idx >= LRC_LINES.length) return;
+  const line = LRC_LINES[idx];
+  const nextLine = LRC_LINES[idx + 1];
+  const prevLine = idx > 0 ? LRC_LINES[idx - 1] : null;
+
+  // Section change
+  if (currentLineIdx < 0 || LRC_LINES[currentLineIdx]?.section !== line.section) {
+    applySection(line.section);
+  }
+
+  currentLineIdx = idx;
+
+  // Prev / next ghost lines
+  linePrev.textContent = prevLine?.text || '';
+  lineNext.textContent = nextLine?.text || '';
+
+  if (!line.text) return;
+
+  const words = line.text.split(' ');
+  const lineDuration = nextLine ? (nextLine.t - line.t) : 4;
+  const timePerWord = Math.max(lineDuration / words.length, 0.08);
+  const colors = sectionColors(line.section);
+
+  // Burst for chorus
+  if (line.section === 'chorus') {
+    spawnBurst('#8ECFED', 20);
+  }
+
+  // Beat ring for line start
+  const ring = document.createElement('div');
+  ring.className = 'beat-ring';
+  document.body.appendChild(ring);
+  setTimeout(() => ring.remove(), 1000);
+
+  words.forEach((word, i) => {
+    const span = document.createElement('span');
+    span.className = 'word';
+    span.textContent = word;
+
+    const isHighlight = HIGHLIGHT_WORDS.has(word.toLowerCase().replace(/[^a-z]/g, ''));
+    const colorClass = isHighlight
+      ? (line.section === 'chorus' ? 'c-ice' : line.section === 'bridge' ? 'c-crimson' : 'c-gold')
+      : rnd(colors);
+
+    span.classList.add(colorClass);
+    if (isHighlight) span.classList.add('highlight');
+
+    lineCurrent.appendChild(span);
+
+    const delay = i * timePerWord * 1000 * 0.9;
+    const animClass = isHighlight ? rnd(['anim-bounce','anim-explode','anim-spin']) : rnd(ANIMS);
+
+    const t = setTimeout(() => {
+      span.classList.add(animClass);
+      if (isHighlight) spawnBurst(
+        line.section === 'chorus' ? '#8ECFED' : line.section === 'bridge' ? '#C8354A' : '#D4A843',
+        8
+      );
+    }, delay);
+    wordTimers.push(t);
+  });
+}
+
+// ── PLAYBACK LOOP ─────────────────────────────────────────────────────────────
+function tick() {
+  if (!audio.src && !audio.currentSrc) {
+    requestAnimationFrame(tick);
+    return;
+  }
+  const t = audio.currentTime;
+  timeDisplay.textContent = fmtTime(t);
+
+  // Progress
+  if (audio.duration) {
+    progressFill.style.width = (t / audio.duration * 100) + '%';
+  }
+
+  // Find current line
+  let newIdx = -1;
+  for (let i = LRC_LINES.length - 1; i >= 0; i--) {
+    if (t >= LRC_LINES[i].t) { newIdx = i; break; }
+  }
+  if (newIdx !== currentLineIdx) renderLine(newIdx);
+
+  requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+
+// ── DEMO MODE (no audio) ─────────────────────────────────────────────────────
+let demoInterval = null;
+let demoIdx = 0;
+function startDemo() {
+  if (demoInterval) clearInterval(demoInterval);
+  demoIdx = 1;
+  renderLine(demoIdx);
+  demoInterval = setInterval(() => {
+    demoIdx++;
+    if (demoIdx >= LRC_LINES.length) demoIdx = 1;
+    renderLine(demoIdx);
+    const line = LRC_LINES[demoIdx];
+    const nextLine = LRC_LINES[demoIdx + 1];
+    const dur = nextLine ? (nextLine.t - line.t) * 1000 : 3000;
+    clearInterval(demoInterval);
+    if (demoIdx < LRC_LINES.length - 1) {
+      demoInterval = setTimeout(function next() {
+        demoIdx++;
+        if (demoIdx >= LRC_LINES.length) demoIdx = 1;
+        renderLine(demoIdx);
+        const l = LRC_LINES[demoIdx];
+        const nl = LRC_LINES[demoIdx + 1];
+        const d = nl ? (nl.t - l.t) * 1000 : 3000;
+        demoInterval = setTimeout(next, Math.max(d, 1800));
+      }, Math.max(dur, 1800));
+    }
+  }, Math.max((LRC_LINES[2] ? (LRC_LINES[2].t - LRC_LINES[1].t) * 1000 : 2000), 1800));
+}
+
+// ── CONTROLS ──────────────────────────────────────────────────────────────────
+const PAUSE_ICON = `<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>`;
+const PLAY_PATH  = `<path d="M8 5v14l11-7z"/>`;
+
+playBtn.addEventListener('click', () => {
+  if (audio.src || audio.currentSrc) {
+    if (audio.paused) {
+      audio.play().then(() => {
+        playIcon.innerHTML = PAUSE_ICON;
+      }).catch(err => {
+        console.warn('Play failed:', err);
+      });
+    } else {
+      audio.pause();
+      playIcon.innerHTML = PLAY_PATH;
+    }
+  }
+});
+
+audio.addEventListener('ended', () => { playIcon.innerHTML = PLAY_PATH; });
+
+// Progress seek
+document.getElementById('progress-track').addEventListener('click', e => {
+  if (!audio.duration) return;
+  const rect = e.currentTarget.getBoundingClientRect();
+  audio.currentTime = ((e.clientX - rect.left) / rect.width) * audio.duration;
+});
+
+// File inputs
+function loadAudio(file) {
+  if (!file) return;
+
+  // Stop demo if running
+  if (demoInterval) { clearTimeout(demoInterval); clearInterval(demoInterval); demoInterval = null; }
+
+  // Revoke old URL if any
+  if (audio._objUrl) URL.revokeObjectURL(audio._objUrl);
+
+  const url = URL.createObjectURL(file);
+  audio._objUrl = url;
+  audio.src = url;
+  audio.load();
+
+  // Hide overlay first (needs user gesture context)
+  document.getElementById('upload-overlay').style.display = 'none';
+  currentLineIdx = -1;
+
+  // Play after canplay event to avoid NotAllowedError
+  const tryPlay = () => {
+    const promise = audio.play();
+    if (promise !== undefined) {
+      promise.then(() => {
+        playIcon.innerHTML = PAUSE_ICON;
+      }).catch(err => {
+        console.warn('Autoplay blocked:', err);
+        playIcon.innerHTML = PLAY_PATH;
+        showPlayHint();
+      });
+    }
+  };
+
+  audio.addEventListener('canplay', tryPlay, { once: true });
+  // Fallback: try immediately too
+  setTimeout(() => {
+    if (audio.paused && audio.readyState >= 2) tryPlay();
+  }, 300);
+}
+
+function showPlayHint() {
+  const hint = document.createElement('div');
+  hint.style.cssText = `position:fixed;bottom:160px;left:50%;transform:translateX(-50%);
+    background:rgba(212,168,67,0.15);border:1px solid #D4A843;
+    color:#D4A843;padding:10px 24px;font-family:'Space Mono',monospace;
+    font-size:11px;letter-spacing:0.2em;text-transform:uppercase;z-index:500;
+    border-radius:2px;pointer-events:none;`;
+  hint.textContent = '▶  Press play to start';
+  document.body.appendChild(hint);
+  setTimeout(() => hint.remove(), 4000);
+}
+
+document.getElementById('audio-file').addEventListener('change', e => {
+  if (e.target.files[0]) loadAudio(e.target.files[0]);
+});
+document.getElementById('audio-upload-main').addEventListener('change', e => {
+  if (e.target.files[0]) loadAudio(e.target.files[0]);
+});
+
+document.getElementById('auto-btn').addEventListener('click', () => {
+  document.getElementById('upload-overlay').style.display = 'none';
+  startDemo();
+});
+
+// Keyboard shortcut
+document.addEventListener('keydown', e => {
+  if (e.code === 'Space') {
+    e.preventDefault();
+    playBtn.click();
+  }
+});
+
+// Initial section
+applySection('intro');
+</script>
+</body>
+</html>
