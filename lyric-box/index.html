@@ -866,6 +866,8 @@ class Style {
 // old lines float up and dissolve.
 class Drift extends Style {
   constructor(p) { super('drift', p); }
+  // Leaving for another style or an interlude is a quick clean exit, not the slow drift fade.
+  clear() { for (const v of this.views) if (!v.leaving) { v.leaving = true; v.o.set(SPR.exit); } }
   enter(line, ctx) {
     for (const v of this.views) v.rank++;
     const el = mk('div', 'line' + (line.bg ? ' bgv' : ''));
@@ -1096,6 +1098,7 @@ class Cloud extends Style {
 // 05 negative valence: wide light caps slide right to left so the sung word sits near the centre.
 class Crawl extends Style {
   constructor(p) { super('crawl', p); }
+  clear() { for (const v of this.views) if (!v.leaving) { v.leaving = true; v.o.set(SPR.exit).to(0); } }
   enter(line, ctx) {
     for (const v of this.views) if (!v.leaving) { v.leaving = true; v.o.set(SPR.exit).to(0); }
     const el = mk('div', 'line' + (line.bg ? ' bgv' : ''));
@@ -1885,9 +1888,14 @@ function frame(now) {
     }
   }
 
-  // Kinetic lines start leaving 240 ms before the next line, so two phrases never share the screen.
+  // Two phrases never share the screen: kinetic lines, and any style that is about to hand over
+  // to a different one, start leaving 240 ms before the next line arrives.
   const nextLine = idx >= 0 ? lines[idx + 1] : null;
-  if (state.styleName === 'kinetic' && !il && nextLine && idx === state.lineIdx && t >= nextLine.t - 240) styles.kinetic.clear();
+  if (state.styleName && !il && nextLine && idx === state.lineIdx && t >= nextLine.t - 240) {
+    let nextStyle = state.forced || nextLine.section.style;
+    if (reduceMotion && !state.forced && nextStyle === 'crawl') nextStyle = 'kinetic';
+    if (state.styleName === 'kinetic' || nextStyle !== state.styleName) styles[state.styleName].clear();
+  }
 
   const cur = idx >= 0 ? lines[idx] : null;
   state.energy = damp(state.energy, cur && !il ? cur.energy : 0.15, 1.5, dt);
