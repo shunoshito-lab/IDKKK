@@ -78,7 +78,21 @@ Per i testi delle canzoni, il serif è **Fraunces 300** (fissato a SOFT 50, WONK
 - **Uscita anticipata in kinetic.** La riga esce 240 ms prima dell'arrivo della successiva, così due frasi non condividono mai lo schermo. Prima si sovrapponevano per circa 170 ms; ora la nuova compare quando la vecchia è già sotto il 30%.
 - **`data-lb-theme` invece di `data-theme`.** Il secondo è riservato al visualizzatore degli artifact.
 
-## 5. Prestazioni misurate
+## 5. Revisione avversaria
+
+Quattro revisori indipendenti hanno lavorato su quattro aspetti: macchina a stati con Spotify e LRCLIB simulati via rete, aderenza alla spec, accessibilità e input, QA visivo. Ogni loro lista è passata da uno scettico che doveva riprodurre il problema o scartarlo: 36 problemi confermati, 1 scartato. Tutti sono stati corretti e ri-verificati con gli stessi script di riproduzione. I più importanti:
+
+- **Spazio riapriva il menu dopo aver avviato una sorgente.** Il focus tornava al pulsante della barra; ora avviare una sorgente è un cambio di contesto.
+- **La barra "spenta" chiudeva fuori gli utenti touch**, anche dopo il reload. Ora un tocco o un click la riporta su per un momento, mentre il passaggio del mouse resta ignorato (modalità proiettore).
+- **Il tap che rivela la barra poteva premere il controllo sotto il dito** se durava più di 170 ms. Ora il suo click viene sempre assorbito.
+- **Spotify fermo (204) lasciava il testo congelato con la bobina disegnata sopra.** Ora le righe escono e la barra si svuota; alla ripresa torna tutto, compresa la card di stato.
+- **Un token revocato portava a uno schermo morto e silenzioso.** Ora l'app esce dall'account, apre il menu e lo dice. Un token che arriva dopo la disconnessione viene scartato.
+- **Al cambio brano non c'era dissolvenza**: le righe sparivano subito. Ora la vecchia riga sfuma mentre la card dice "cerco.".
+- **Contrasto della card agganciata in basso:** era 2,5:1 in carta, ora è 5,2:1.
+- **`[` e `]` non funzionavano sulle tastiere italiane** (servono AltGr). Ora funzionano, e tenere premuto T non fa più lampeggiare il tema.
+- **Telefono:** parole di cloud e crawl più larghe dello schermo, il titolo della barra ridotto a una lettera, intestazioni del menu coperte dall'header.
+
+## 6. Prestazioni misurate
 
 Chromium headless con rendering software (SwiftShader), quindi senza GPU. Valori mediana / 95° percentile in ms per frame:
 

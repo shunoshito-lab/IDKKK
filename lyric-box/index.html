@@ -177,7 +177,9 @@
   }
   #card.on { opacity: 1; transform: translateY(-50%); transition: opacity var(--t-card-in) var(--out), transform var(--t-card-in) var(--out); }
   #card.docked { top: auto; bottom: var(--safe-b); transform: translateY(8px); }
-  #card.docked.on { opacity: .62; transform: none; }
+  #card.docked.on { transform: none; }
+  #card.docked .t { opacity: .62; }
+  #card.voice.docked .t { font-weight: 300; }
   #card p { margin: 0; }
   #card .k { font: 350 var(--fs-10)/1.4 var(--f-sans); color: var(--ink-2); font-variant-numeric: tabular-nums; margin-bottom: .8em; }
   #card .t { font: 300 var(--fs-card)/1.1 var(--f-serif); letter-spacing: -.015em; max-width: 16em; text-wrap: balance; }
@@ -224,6 +226,7 @@
     --ink: #f5f5f5; --ink-2: rgba(245, 245, 245, .62); --hair: rgba(245, 245, 245, .10);
     position: relative; display: flex; align-items: stretch; height: calc(var(--row) - 12px);
     background: var(--screen); border-radius: var(--r); color: var(--ink);
+    box-shadow: inset 0 0 0 1px rgba(245, 245, 245, .08);
   }
   .seg { all: unset; position: relative; display: flex; align-items: center; gap: 8px; cursor: pointer;
     padding: 0 clamp(12px, calc(14 * var(--u)), 20px); }
@@ -233,11 +236,12 @@
   .seg:focus-visible { outline: 2px solid var(--ink); outline-offset: -4px; }
   .num { display: inline-block; font: 500 var(--fs-num)/1 var(--f-dot); letter-spacing: .02em; color: var(--ink); font-variant-numeric: tabular-nums; }
   #tNow { min-width: 4.4ch; }
-  .num .col { font-family: var(--f-sans); font-weight: 400; margin: 0 .04em; position: relative; top: -.06em; } #syncVal, #syncVal2 { min-width: 4.4ch; text-align: right; } #modeNum { min-width: 2.2ch; }
+  .num .col { font-family: var(--f-sans); font-weight: 400; margin: 0 .04em; position: relative; top: -.06em; }
+  .num .pm { font-family: var(--f-sans); font-weight: 300; margin-right: .04em; } #syncVal, #syncVal2 { min-width: 4.4ch; text-align: right; } #modeNum { min-width: 2.2ch; }
   .num[data-hot="time"] { color: var(--c-time); } .num[data-hot="mode"] { color: var(--c-mode); }
   .sync:not(.zero) .num, .screen.mini:not(.zero) .num { color: var(--c-sync-ink); }
   .sync.zero .num, .screen.mini.zero .num { color: var(--ink-2); }
-  .time[data-paused] .num { color: var(--ink-2); }
+  .time[data-paused] .num:not([data-hot]) { color: var(--ink-2); }
   .lbl { font: 350 var(--fs-10)/1 var(--f-sans); color: var(--ink-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
   .leds { width: 92px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.25; flex: none; }
   .leds g { color: var(--ink); opacity: .18; }
@@ -292,6 +296,7 @@
     font: 450 11px/1 var(--f-sans); color: var(--ink); background: var(--key); box-shadow: inset 0 0 0 1px var(--hair), inset 0 -2px 0 var(--edge);
   }
   .dot { display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: var(--k, var(--ink)); box-shadow: 0 0 0 1px var(--seam); flex: none; }
+  .key[data-src] { grid-auto-flow: column; }
   .live { display: inline-block; width: 5px; height: 5px; margin-left: 6px; border-radius: 50%; background: currentColor; }
 
   /* sheet: one solid aluminium plate, numbered sections */
@@ -300,7 +305,7 @@
     max-height: calc(100vh - var(--gap-b) - var(--m)); max-height: calc(100dvh - var(--gap-b) - var(--m));
     overflow: auto; overscroll-behavior: contain;
     padding: 0 clamp(16px, calc(20 * var(--u)), 28px) clamp(16px, calc(20 * var(--u)), 28px);
-    background: var(--plate); border-radius: var(--r); box-shadow: inset 0 0 0 1px var(--hair);
+    background: var(--plate); border-radius: var(--r); border: 1px solid var(--hair);
     font: 350 var(--fs-15)/1.5 var(--f-sans); color: var(--ink);
     opacity: 0; transform: translateY(12px); visibility: hidden;
     transition: opacity var(--t-sheet-out) var(--in), transform var(--t-sheet-out) var(--in), visibility 0s linear var(--t-sheet-out);
@@ -316,7 +321,7 @@
   .sh-head h2 { margin: 0; font: 400 var(--fs-15)/1 var(--f-sans); }
   .sh-head .code { font: 350 var(--fs-10)/1 var(--f-sans); color: var(--ink-2); }
   .sh-head .key { margin-left: auto; min-height: var(--tap); min-width: var(--tap); }
-  .sec { padding: 16px 0 8px; } .sec + .sec { box-shadow: inset 0 1px 0 var(--hair); }
+  .sec { padding: 16px 0 8px; scroll-margin-top: calc(var(--tap) + 28px); } .sec + .sec { box-shadow: inset 0 1px 0 var(--hair); }
   .sec h3 { margin: 0 0 12px; font: 400 var(--fs-10)/1 var(--f-sans); color: var(--ink-2); }
   .sec h3:focus { outline: 0; }
   .sec h3 b { font-weight: 400; font-variant-numeric: tabular-nums; }
@@ -336,7 +341,7 @@
   .xy i { position: absolute; left: 0; top: 0; width: 6px; height: 6px; border-radius: 50%; background: var(--ink); }
   .legend ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
   .legend li {
-    display: grid; grid-template-columns: 8px minmax(72px, auto) 1fr; gap: 8px; align-items: center;
+    display: grid; grid-template-columns: 8px 96px 1fr; gap: 8px; align-items: center;
     font: 350 var(--fs-10)/1.3 var(--f-sans); color: var(--ink-2);
   }
   .legend li .dot { background: var(--k); }
@@ -356,11 +361,13 @@
   /* breakpoints */
   @media (min-width: 768px) and (max-width: 1023px) { #modeName, #chorusTag { display: none; } }
   @media (max-width: 767px) {
-    #artist, .seg.mode, .seg.sync.zero, .time .lbl, #hint { display: none; }
+    #artist, .seg.mode, .seg.sync.zero, .time .lbl, .sync .lbl, #hint { display: none; }
+    #syncVal { min-width: 0; }
+    #rail:has(.seg.sync:not(.zero)) #art { display: none; }
     .key.menu { min-width: 48px; height: 48px; }
     #panel {
       left: 0; right: 0; bottom: 0; width: auto; max-height: 86vh; max-height: 86dvh; border-radius: 0;
-      box-shadow: inset 0 1px 0 var(--hair); padding: 0 16px calc(16px + env(safe-area-inset-bottom, 0px));
+      border: 0; border-top: 1px solid var(--hair); padding: 0 16px calc(16px + env(safe-area-inset-bottom, 0px));
     }
     .fld input { font-size: 16px; }
     body.sheet-open #card { top: calc(var(--m) + env(safe-area-inset-top, 0px)); transform: none; max-width: calc(100vw - 2 * var(--m)); }
@@ -410,13 +417,13 @@
     <div class="seg sync zero" id="segSync" role="spinbutton" tabindex="0" aria-label="sync"
          aria-valuemin="-10000" aria-valuemax="10000" aria-valuenow="0" aria-valuetext="±0 ms"
          data-hint="sync · ← → · shift ×5 · rotella">
-      <span class="num" id="syncVal">±0</span><span class="lbl">ms</span>
+      <span class="num" id="syncVal"><span class="pm">±</span>0</span><span class="lbl">ms</span>
     </div>
     <button class="seg time" id="segTime" type="button" data-hint="tempo · spazio · [ ] ±5 s" aria-label="tempo">
       <span class="reelw"><svg class="reel" id="reel" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="7"/><circle cx="8" cy="8" r="2"/><path d="M8 6V1.5M9.7 9l3.9 2.3M6.3 9l-3.9 2.3"/></svg></span>
       <span class="num" id="tNow">--:--</span><span class="lbl" id="tLeft"></span>
     </button>
-    <output class="msg" id="msg" hidden><i></i><span id="msgText"></span></output>
+    <output class="msg" id="msg" aria-hidden="true" hidden><i></i><span id="msgText"></span></output>
   </div>
   <button class="key menu" id="menuKey" type="button" aria-label="menu" data-hint="menu · esc">menu</button>
   <p id="hint" aria-hidden="true"></p>
@@ -472,7 +479,7 @@
     <div class="keys" role="group" aria-label="sync">
       <i class="dot" style="--k: var(--c-sync)"></i>
       <button class="key" type="button" id="syncMinus" aria-label="sync meno 100 ms">−</button>
-      <span class="screen mini zero"><span class="num" id="syncVal2">±0</span><span class="lbl">ms</span></span>
+      <span class="screen mini zero"><span class="num" id="syncVal2"><span class="pm">±</span>0</span><span class="lbl">ms</span></span>
       <button class="key" type="button" id="syncPlus" aria-label="sync più 100 ms">+</button>
       <button class="key" type="button" id="syncReset">reset</button>
       <span class="note">→ testo prima</span>
@@ -963,7 +970,7 @@ class Kinetic extends Style {
 class Impact extends Style {
   constructor(p) { super('impact', p); this.bigs = []; this.line = null; this.gi = -1; }
   enter(line) {
-    for (const v of this.views) v.leaving = true;
+    for (const v of this.views) { v.leaving = true; v.o.set(SPR.exit); }
     this.line = line; this.gi = -1;
     line.groups = line.groups || groupWords(line.words);
     const el = mk('div', 'line');
@@ -1005,7 +1012,7 @@ class Impact extends Style {
       if (b.dying && b.o.x < 0.01) { b.el.remove(); this.bigs.splice(this.bigs.indexOf(b), 1); }
     }
     for (const v of [...this.views]) {
-      v.o.to(v.leaving ? 0 : 1).step(dt);
+      v.o.to(v.leaving || this.views.some((u) => u.leaving && u.o.x > 0.15) ? 0 : 1).step(dt);
       const op = clamp(v.o.x).toFixed(3);
       if (op !== v._o) { v.el.style.opacity = op; v._o = op; }
       v.line.words.forEach((w, k) => { const sp = v.sprites[k]; sp.progress(wp(w, t)); sp.render(); });
@@ -1024,11 +1031,15 @@ class Cloud extends Style {
     const line = this.line;
     const rng = mulberry32(hashStr(w.text) + line.i * 131 + w.i * 7);
     const s = syl(w.text), held = w.end - w.t > 800, serif = s >= 2 || held;
-    const base = clamp(ctx.H * (0.045 + 0.02 * s) * (held ? 1.2 : 1), 20, 0.14 * ctx.H);
+    const S = ctx.portrait ? Math.min(ctx.H, 1.5 * ctx.W) : ctx.H;
+    const base = clamp(S * (0.045 + 0.02 * s) * (held ? 1.2 : 1), 20, 0.14 * S);
     const el = mk('span', 'cw w ' + (serif ? 'serif' : 'sans'), w.text);
-    el.style.fontSize = (serif ? base : Math.max(16, 0.62 * base)).toFixed(1) + 'px';
+    let fs = serif ? base : Math.max(16, 0.62 * base);
+    el.style.fontSize = fs.toFixed(1) + 'px';
     this.root.append(el);
-    const bw = el.offsetWidth, bh = el.offsetHeight;
+    let bw = el.offsetWidth, bh = el.offsetHeight;
+    const maxW = ctx.W - 2 * ctx.m;
+    if (bw > maxW) { fs *= maxW / bw; el.style.fontSize = fs.toFixed(1) + 'px'; bw = el.offsetWidth; bh = el.offsetHeight; }
     const colW = (ctx.W - 2 * ctx.m) / 8;
     const live = this.items.filter((it) => !it.dying);
     let best = null, bestScore = Infinity;
@@ -1044,6 +1055,13 @@ class Cloud extends Style {
       }
       if (score < bestScore) { bestScore = score; best = { x, y }; }
       if (score === 0) break;
+    }
+    if (bestScore > 0) {
+      for (const it of live) {
+        const hitX = Math.min(best.x + bw, it.rx + it.rw) > Math.max(best.x, it.rx);
+        const hitY = Math.min(best.y + bh, it.ry + it.rh) > Math.max(best.y, it.ry);
+        if (hitX && hitY) it.dying = true;
+      }
     }
     el.style.left = best.x.toFixed(1) + 'px';
     el.style.top = best.y.toFixed(1) + 'px';
@@ -1087,6 +1105,8 @@ class Crawl extends Style {
     for (const sp of sprites) sp.o.snap(1);
     this.mount(el, sprites);
     this.root.append(el);
+    const longest = Math.max(...sprites.map((sp) => sp.el.offsetWidth));
+    if (longest > ctx.W - 2 * ctx.m) el.style.fontSize = (fs * (ctx.W - 2 * ctx.m) / longest) + 'px';
     const centers = sprites.map((sp) => sp.el.offsetLeft + sp.el.offsetWidth / 2);
     const rng = mulberry32(hashStr(line.text) + line.i);
     const angles = [-3, 0, 3];
@@ -1113,6 +1133,8 @@ class Crawl extends Style {
           pos = lerp(v.centers[k], nextC, clamp((t - ws[k].t) / Math.max(1, nextT - ws[k].t)));
         }
         v.x = damp(v.x, W * 0.58 - pos, 3.5, dt);
+        const lv = this.views.find((u) => u.leaving && u.o.x > 0.3);
+        if (lv) v.x = Math.max(v.x, lv.x + lv.width + 0.06 * W);
         v.vx = (v.x - px) / Math.max(dt, 1e-3);
       } else {
         v.vx = Math.min(v.vx, -0.25 * W);
@@ -1485,6 +1507,7 @@ const ui = {
       const was = this.open;
       this.open = true;
       p.inert = false; p.setAttribute('data-open', '');
+      els.rail.inert = true;
       body.classList.add('sheet-open'); body.classList.remove('idle');
       this.hide();
       if (!was) {
@@ -1506,6 +1529,7 @@ const ui = {
       this.open = false;
       const o = this.opener;
       this.opener = null;
+      els.rail.inert = false;
       if (o && document.contains(o) && typeof o.focus === 'function' && o !== body) o.focus({ preventScroll: true });
       else if (p.contains(document.activeElement)) document.activeElement.blur();
       p.removeAttribute('data-open'); p.inert = true;
@@ -1571,7 +1595,7 @@ function updateRail(line = curLine()) {
   els.segMode.setAttribute('aria-label', `modo ${idx ? '0' + idx + ' ' + name : 'nessuno'}, ${state.forced ? 'fisso' : 'auto'}`);
 
   const off = fmtOffset(state.offset);
-  setText(els.syncVal, off); setText(els.syncVal2, off);
+  setSigned(els.syncVal, off); setSigned(els.syncVal2, off);
   els.segSync.classList.toggle('zero', !state.offset);
   els.mini.classList.toggle('zero', !state.offset);
   els.segSync.setAttribute('aria-valuenow', String(state.offset));
@@ -1600,9 +1624,17 @@ function updateTime(force) {
   const paused = !clock.playing;
   if (!force && sec === state.lastSec && paused === state.lastPaused) return;
   state.lastSec = sec; state.lastPaused = paused;
-  setClock(els.tNow, state.mode ? fmtTime(now) : '--:--');
+  setClock(els.tNow, state.mode && state.track ? fmtTime(now) : '--:--');
   setText(els.tLeft, !state.mode ? '' : paused ? 'pausa' : dur ? `(−${fmtTime(dur - now)})` : '');
   els.segTime.toggleAttribute('data-paused', paused);
+}
+
+// Offsets: "±" is not in the Doto subset, so it is set in Archivo on purpose.
+function setSigned(el, str) {
+  if (el._v === str) return;
+  el._v = str;
+  if (str.startsWith('±')) el.replaceChildren(mk('span', 'pm', '±'), str.slice(1));
+  else el.textContent = str;
 }
 
 // m:ss with the colon in Archivo: Doto's dotted colon reads like a dagger at rail size.
@@ -1685,7 +1717,7 @@ function nudgeOffset(d) {
   store.set('lb.offset', String(state.offset));
   updateRail();
   bump(els.syncVal); bump(els.syncVal2);
-  announce(`sync ${fmtOffset(state.offset)} ms`);
+  if (document.activeElement !== els.segSync) announce(`sync ${fmtOffset(state.offset)} ms`);
 }
 function setStyle(name) {
   state.forced = name || null;
@@ -1730,7 +1762,9 @@ function beginTrack(meta, srcLabel) {
   const tok = ++swapTok;
   state.trackKey = (meta.title || '') + '|' + (meta.artist || '');
   state.track = meta; state.song = null; state.pendingSong = null; state.srcLabel = srcLabel;
+  state.statusCard = null;
   state.fading = true;
+  state.lineIdx = -1;
   const done = () => {
     if (tok !== swapTok) return;
     resetStyles();
@@ -1760,7 +1794,9 @@ function applySong(song) {
   state.interlude = false;
   const meta = state.track || { title: '', artist: '' };
   const n = song.lines.length;
-  if (n) {
+  if (SP.idle) {
+    if (!n) state.statusCard = statusCardFor(song, meta);
+  } else if (n) {
     const first = song.lines[0];
     const t = clock.now() + state.offset;
     if (state.mode !== 'manual' && t > first.t - 600) card.hide();      // joined mid-song: no card
@@ -1772,23 +1808,30 @@ function applySong(song) {
       card.holdForPlay = state.mode === 'manual' && !clock.playing;
     }
   } else {
-    const status = song.failed ? 'lrclib non risponde.'
-      : song.instrumental ? 'strumentale. solo forme.' : 'nessun testo sincronizzato. goditi la musica.';
-    card.show({ meta: state.srcLabel, title: meta.title, artist: meta.artist, status, docked: true, kind: 'status' });
+    state.statusCard = statusCardFor(song, meta);
+    card.show(state.statusCard);
   }
   updateRail(null);
 }
+function statusCardFor(song, meta) {
+  const status = song.failed ? 'lrclib non risponde.'
+    : song.instrumental ? 'strumentale. solo forme.' : 'nessun testo sincronizzato. goditi la musica.';
+  return { meta: state.srcLabel, title: meta.title, artist: meta.artist, status, docked: true, kind: 'status' };
+}
 
+let palTok = 0;
 async function applyPalette(url) {
+  const tok = ++palTok;
   if (!url) { state.palette = DEMO_PALETTE; return; }
-  try { state.palette = await paletteFrom(url); }
-  catch (e) { console.warn('palette', e); state.palette = DEMO_PALETTE; }
+  try { const p = await paletteFrom(url); if (tok === palTok) state.palette = p; }
+  catch (e) { console.warn('palette', e); if (tok === palTok) state.palette = DEMO_PALETTE; }
 }
 
 /* ============================================================
    Layout context
    ============================================================ */
-function layoutFx() { fx.layout(card.on && card.docked ? els.card.getBoundingClientRect().top : null); }
+// offsetTop of a fixed element ignores transforms: the card's settled position, not its mid-transition box.
+function layoutFx() { fx.layout(card.on && card.docked ? els.card.offsetTop : null); }
 function onResize() {
   W = innerWidth; H = innerHeight;
   L.m = els.probe.offsetWidth || 16;
@@ -1813,14 +1856,14 @@ function frame(now) {
   const lines = song ? song.lines : [];
   const ctx = { t, dt, now, W, H, m: L.m, ay: L.ay, bot: L.bot, portrait: L.portrait, energy: state.energy, hit };
 
-  if (clock.takeSeek()) resetStyles();
+  if (clock.takeSeek() && !state.fading) resetStyles();
   const idx = lineIndexAt(lines, t);
   if (state.lineIdx !== -1 && (idx < state.lineIdx || idx > state.lineIdx + 2)) resetStyles();
   const il = interludeAt(lines, idx, t);
   if (il && !state.interlude) { for (const s of Object.values(styles)) s.clear(); state.interlude = true; }
   if (!il) state.interlude = false;
 
-  if (!il && idx >= 0 && idx !== state.lineIdx) {
+  if (!il && !SP.idle && idx >= 0 && idx !== state.lineIdx) {
     const line = lines[idx];
     let want = state.forced || line.section.style;
     if (reduceMotion && !state.forced && want === 'crawl') want = 'kinetic';
@@ -1834,7 +1877,7 @@ function frame(now) {
   // Track card: leaves as the first line arrives, or after its hold.
   if (card.on && card.kind === 'track') {
     const first = lines[0];
-    if (card.holdForPlay) {
+    if (card.holdForPlay && state.lineIdx < 0) {
       if (clock.playing) { card.holdForPlay = false; card.releaseAt = now + HOLD.hot; }
     } else if (state.lineIdx >= 0 || (first && t >= first.t - HOLD.cardLead)
       || (card.releaseAt ? now >= card.releaseAt : (song && now - card.shownAt >= HOLD.card))) {
@@ -1957,7 +2000,7 @@ const SP = {
   clientId: store.get('lb.clientId', ''),
   redirect: location.origin + location.pathname,
   access: null, exp: 0, refresh: store.get('lb.refresh'),
-  timer: 0, trackId: null, loadSeq: 0, idle: false,
+  timer: 0, trackId: null, loadSeq: 0, idle: false, gen: 0,
 };
 const b64url = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 const randStr = (n) => { const a = new Uint8Array(n); crypto.getRandomValues(a); return b64url(a).slice(0, n); };
@@ -1979,12 +2022,14 @@ async function spLogin() {
 }
 
 async function spToken(bodyParams) {
+  const gen = SP.gen;
   const r = await fetch('https://accounts.spotify.com/api/token', {
     method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({ client_id: SP.clientId, ...bodyParams }),
   });
   if (!r.ok) throw new Error('token ' + r.status);
   const j = await r.json();
+  if (gen !== SP.gen) throw new Error('stale');
   SP.access = j.access_token;
   SP.exp = Date.now() + (j.expires_in - 60) * 1000;
   if (j.refresh_token) { SP.refresh = j.refresh_token; store.set('lb.refresh', j.refresh_token); }
@@ -2018,12 +2063,16 @@ function spGoIdle() {
   clock.pause();
   if (SP.idle) return;
   SP.idle = true;
+  for (const s of Object.values(styles)) s.clear();
+  setTrackInfo(null);
   card.show({ title: 'niente in riproduzione.', artist: 'avvia qualcosa su spotify.', voice: true, docked: true, kind: 'idle' });
 }
 function spWake() {
   if (!SP.idle) return;
   SP.idle = false;
+  resetStyles();
   if (card.kind === 'idle') card.hide();
+  if (state.statusCard) card.show(state.statusCard);
   setTrackInfo(state.track);
 }
 
@@ -2050,7 +2099,16 @@ async function spPoll() {
         next = j.is_playing ? Math.min(1000, Math.max(250, left + 150)) : 2000;
       }
     } else next = 3000;
-  } catch (e) { console.warn('poll', e); next = 4000; }
+  } catch (e) {
+    if (/^token 40[01]/.test(e.message) || e.message === 'non connesso') {
+      spSignOut();
+      ui.sheet(true);
+      setSource('spotify', false);
+      notify('× sessione spotify scaduta. riconnetti.');
+      return;
+    }
+    console.warn('poll', e); next = 4000;
+  }
   if (!document.hidden && state.mode === 'spotify') SP.timer = setTimeout(spPoll, next);
 }
 
@@ -2075,12 +2133,13 @@ async function spLoadTrack(it) {
   }
 }
 
-function stopSources() { SP.loadSeq++; clearTimeout(SP.timer); SP.idle = false; SP.trackId = null; }
+function stopSources() { SP.loadSeq++; clearTimeout(SP.timer); SP.idle = false; SP.trackId = null; busy(false); }
 
 function startSpotify() {
   stopSources();
   state.mode = 'spotify';
   card.hide();
+  ui.opener = null;
   ui.sheet(false);
   setSource('spotify', false);
   syncSheet(); updateRail(); updateTime(true);
@@ -2116,6 +2175,7 @@ const DEMO_LRC = `[00:01.50]Accendo una luce dentro una stanza vuota
 function startDemo(atMs = 0) {
   stopSources();
   state.mode = 'demo';
+  ui.opener = null;
   ui.sheet(false);
   clock.set(atMs, true);
   beginTrack({ title: 'testo di prova', artist: 'lyric box', durationMs: 74000 }, 'demo');
@@ -2136,6 +2196,7 @@ async function startManual() {
     stopSources();
     state.mode = 'manual';
     const meta = { title: rec.trackName, artist: rec.artistName, durationMs: rec.duration * 1000 };
+    ui.opener = null;
     ui.sheet(false);
     clock.set(0, false);
     beginTrack(meta, 'lrclib');
@@ -2210,21 +2271,22 @@ $('#copyUri').addEventListener('click', (e) => {
 });
 
 els.connect.addEventListener('click', spLogin);
-els.disconnect.addEventListener('click', () => {
-  store.del('lb.refresh'); SP.refresh = null; SP.access = null;
+function spSignOut() {
+  store.del('lb.refresh'); SP.refresh = null; SP.access = null; SP.exp = 0; SP.gen++;
   stopSources();
-  state.mode = null; state.song = null; state.track = null; state.trackKey = '';
+  state.mode = null; state.song = null; state.track = null; state.trackKey = ''; state.statusCard = null;
   clock.set(0, false, true);
   resetStyles();
   setTrackInfo(null); applyPalette(null);
   card.boot();
   syncSheet(); updateTime(true);
-  els.srcMsg.textContent = 'disconnesso.';
-});
+}
+els.disconnect.addEventListener('click', () => { spSignOut(); els.srcMsg.textContent = 'disconnesso.'; });
 $('#demo').addEventListener('click', () => startDemo());
 els.search.addEventListener('click', startManual);
-for (const id of ['#qArtist', '#qTitle']) $(id).addEventListener('keydown', (e) => { if (e.key === 'Enter') startManual(); });
-$('#clientId').addEventListener('keydown', (e) => { if (e.key === 'Enter') spLogin(); });
+const composing = (e) => e.isComposing || e.keyCode === 229;
+for (const id of ['#qArtist', '#qTitle']) $(id).addEventListener('keydown', (e) => { if (e.key === 'Enter' && !composing(e)) startManual(); });
+$('#clientId').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !composing(e)) spLogin(); });
 
 /* ============================================================
    Rail wiring
@@ -2299,36 +2361,65 @@ addEventListener('pointermove', (e) => {
   ui.reveal();
 }, { passive: true });
 
+// The tap that reveals the rail never presses the control under the finger, however long it lasts:
+// its click is swallowed (a hidden rail has pointer-events:none, so hit-test by geometry).
+let eatClick = false;
+const overRail = (e) => { const r = els.rail.getBoundingClientRect(); return e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top - 8 && e.clientY <= r.bottom; };
 document.addEventListener('pointerdown', (e) => {
+  eatClick = false;
+  if (ui.open) return;
+  if (e.target.closest && e.target.closest('#panel, #toast')) return;
+  const live = body.classList.contains('ui-live');
+  if (ui.hud === 'spenta') {
+    // Projector mode ignores hover, but a deliberate tap or click still brings the controls back.
+    if (!ui.shown) { eatClick = true; ui.reveal(HOLD.firstReveal, true); }
+    return;
+  }
   if (e.pointerType === 'mouse') return;
-  if (e.target.closest && e.target.closest('#rail, #panel, #toast')) return;
-  if (ui.open || ui.hud === 'spenta') return;
-  if (ui.shown && ui.hud !== 'fissa') ui.hide(); else ui.reveal(HOLD.firstReveal);
+  if (live && overRail(e)) return;                       // a normal tap on a visible control
+  if (ui.shown && ui.hud !== 'fissa') ui.hide();
+  else { eatClick = overRail(e); ui.reveal(HOLD.firstReveal); }
 });
-els.rail.addEventListener('focusin', () => ui.reveal());
+document.addEventListener('click', (e) => {
+  if (!eatClick) return;
+  eatClick = false;
+  e.preventDefault(); e.stopImmediatePropagation();
+}, true);
+// Keyboard focus is deliberate input: it reveals the rail even in "spenta".
+els.rail.addEventListener('focusin', () => ui.reveal(HOLD.idle, !!els.rail.querySelector(':focus-visible')));
 els.rail.addEventListener('pointerleave', () => { if (ui.shown) ui.reveal(); });
 
 addEventListener('keydown', (e) => {
+  if (e.isComposing || e.keyCode === 229) return;          // IME conversion owns Enter and Esc
   if (e.key === 'Escape') {
     e.preventDefault();
+    if (e.repeat) return;
     ui.sheet(!ui.open, document.activeElement);
     return;
   }
   const tg = e.target;
-  if (tg.tagName === 'INPUT' || tg.tagName === 'TEXTAREA' || e.metaKey || e.ctrlKey || e.altKey) return;
+  const typing = tg.tagName === 'INPUT' || tg.tagName === 'TEXTAREA';
+  // [ and ] need AltGr / Option on Italian and most European layouts: accept them with those modifiers.
+  if ((e.key === '[' || e.key === ']') && !typing && !e.metaKey) {
+    seek(e.key === ']' ? 5000 : -5000);
+    ui.keyReveal();
+    return;
+  }
+  if (typing || e.metaKey || e.ctrlKey || e.altKey) return;
+  // Holding a toggle key must not strobe the theme, the sheet or fullscreen.
+  if (e.repeat && !['ArrowLeft', 'ArrowRight', 'Tab'].includes(e.key)) { if (e.key === ' ') e.preventDefault(); return; }
   if ((e.key === ' ' || e.key === 'Enter') && (tg.tagName === 'BUTTON' || (tg.getAttribute && tg.getAttribute('role') === 'spinbutton'))) return;
   const k = e.key;
   let handled = true;
   if (k === ' ') { e.preventDefault(); togglePlay(); }
   else if (k === 'ArrowLeft' || k === 'ArrowRight') { e.preventDefault(); nudgeOffset((k === 'ArrowRight' ? 1 : -1) * (e.shiftKey ? 500 : 100)); }
-  else if (k === '[' || k === ']') seek(k === ']' ? 5000 : -5000);
   else if (k === 's' || k === 'S') cycleStyle();
   else if (/^[1-5]$/.test(k)) setStyle(STYLE_ORDER[+k - 1]);
   else if (k === '0') setStyle(null);
   else if (k === 'h' || k === 'H') cycleHud();
   else if (k === 'f' || k === 'F') toggleFullscreen();
   else if (k === 't' || k === 'T') cycleTheme();
-  else if (k === 'Tab') { ui.reveal(); return; }
+  else if (k === 'Tab') { ui.reveal(HOLD.idle, true); return; }
   else handled = false;
   if (handled) ui.keyReveal();
 });
@@ -2356,6 +2447,7 @@ setSource(DEMO_ONLY ? 'demo' : (['spotify', 'lrclib', 'demo'].includes(store.get
 applyTheme(false);
 state.paper = state.paperTarget;
 els.panel.inert = false;
+els.rail.inert = true;
 body.classList.add('sheet-open');
 syncSheet(); updateTime(true);
 
