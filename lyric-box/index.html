@@ -1,0 +1,1408 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lyric Box</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,300;1,9..144,600&family=Inter+Tight:wght@300;500;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --hi: #ffffff;
+    --lo: rgba(255, 255, 255, .22);
+    --accent: #ffcf7a;
+    --ui: rgba(255, 255, 255, .64);
+    --ui-dim: rgba(255, 255, 255, .34);
+    --card: rgba(12, 12, 18, .78);
+    --rule: rgba(255, 255, 255, .12);
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0; height: 100%;
+    background: #07070a; color: #fff;
+    overflow: hidden;
+    font-family: 'Inter Tight', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  canvas#bg { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+  canvas#fx { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+
+  /* Grain: same trick as the Tumblr Girls visualizer, cheap and static */
+  #grain {
+    position: fixed; inset: 0; pointer-events: none; z-index: 5;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+    background-size: 220px; opacity: .07; mix-blend-mode: overlay;
+  }
+
+  #stage { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 2; }
+  #camera { position: absolute; inset: 0; will-change: transform; }
+  .style { position: absolute; inset: 0; }
+
+  /* A sung word: the fill is a moving gradient edge clipped to the glyphs (AMLL-style fade mask) */
+  .w {
+    display: inline-block; white-space: pre;
+    /* background-clip only paints inside the box: pad it so descenders and italics aren't cut */
+    padding: .1em .08em .22em; margin: -.1em -.08em -.22em;
+    will-change: transform, opacity;
+    background-image: linear-gradient(90deg, var(--hi) calc(var(--p, 0) * 118% - 18%), var(--lo) calc(var(--p, 0) * 118%));
+    -webkit-background-clip: text; background-clip: text;
+    color: transparent;
+  }
+
+  .line { position: absolute; will-change: transform, opacity; }
+
+  .drift .line {
+    left: 50%; top: 50%; width: 84vw; text-align: center;
+    font-family: 'Fraunces', serif; font-weight: 300; line-height: 1.14; letter-spacing: -.01em;
+  }
+  .kinetic .line {
+    left: 8vw; top: 50%; width: 84vw; text-align: left;
+    font-weight: 800; line-height: 1; letter-spacing: -.035em;
+  }
+  .impact .big {
+    position: absolute; left: 50%; top: 45%;
+    font-family: 'Anton', 'Inter Tight', sans-serif; text-transform: uppercase;
+    line-height: .92; white-space: nowrap; color: var(--hi);
+    will-change: transform, opacity;
+  }
+  .impact .line {
+    left: 50%; bottom: 11vh; width: 84vw; text-align: center;
+    font-weight: 500; font-size: clamp(15px, 2.1vw, 26px); letter-spacing: .01em;
+  }
+  .cloud .cw { position: absolute; left: 0; top: 0; line-height: 1.05; white-space: nowrap; }
+  .crawl .line {
+    left: 0; top: 0; white-space: nowrap; transform-origin: 0 50%;
+    font-weight: 300; text-transform: uppercase; letter-spacing: .14em;
+  }
+  .bgv { font-style: italic; }
+
+  /* Interlude dots (Apple Music idea: a breathing countdown to the next line) */
+  #dots {
+    position: fixed; left: 50%; top: 50%; z-index: 3;
+    display: flex; gap: 16px; transform: translate(-50%, -50%);
+    opacity: 0; pointer-events: none;
+  }
+  #dots i { width: 13px; height: 13px; border-radius: 50%; background: #fff; display: block; }
+
+  /* HUD */
+  #hud {
+    position: fixed; z-index: 6; top: 0; left: 0; right: 0;
+    display: flex; justify-content: space-between; align-items: flex-start; gap: 16px;
+    padding: 22px 28px; font-family: 'Space Mono', monospace; font-size: 11px;
+    letter-spacing: .14em; text-transform: uppercase; color: var(--ui);
+    transition: opacity .6s;
+  }
+  #hud .now { display: flex; gap: 12px; align-items: center; min-width: 0; }
+  #hud img { width: 40px; height: 40px; border-radius: 4px; object-fit: cover; display: none; }
+  #hud b { display: block; color: #fff; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 46vw; }
+  #hud .meta { text-align: right; display: grid; gap: 4px; color: var(--ui-dim); }
+  #hud #styleBadge { color: var(--accent); }
+  #progress { position: fixed; z-index: 6; left: 28px; right: 28px; bottom: 22px; height: 1px; background: var(--rule); transition: opacity .6s; }
+  #progress i { display: block; height: 100%; background: var(--ui); transform-origin: 0 50%; transform: scaleX(0); }
+  body.clean #hud, body.clean #progress { opacity: 0; }
+
+  #toast {
+    position: fixed; z-index: 8; left: 50%; bottom: 46px; transform: translateX(-50%);
+    font-family: 'Space Mono', monospace; font-size: 12px; letter-spacing: .08em;
+    background: var(--card); border: 1px solid var(--rule); border-radius: 999px;
+    padding: 8px 16px; opacity: 0; transition: opacity .25s; pointer-events: none; white-space: nowrap;
+  }
+  #toast.on { opacity: 1; }
+
+  /* Setup panel */
+  #panel {
+    position: fixed; z-index: 7; left: 50%; top: 50%; transform: translate(-50%, -50%);
+    width: min(520px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow: auto;
+    background: var(--card); border: 1px solid var(--rule); border-radius: 18px;
+    padding: 28px; backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+  }
+  #panel[hidden] { display: none; }
+  #panel h1 { margin: 0; font-family: 'Fraunces', serif; font-weight: 300; font-size: 40px; letter-spacing: -.02em; }
+  #panel h2 { margin: 0 0 10px; font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: var(--accent); font-weight: 400; }
+  #panel .sub { margin: 6px 0 20px; color: var(--ui); font-size: 15px; }
+  #panel .group { border-top: 1px solid var(--rule); padding: 18px 0 6px; }
+  #panel label { display: block; font-size: 13px; color: var(--ui); margin-bottom: 10px; }
+  #panel input {
+    width: 100%; margin-top: 6px; padding: 10px 12px; border-radius: 10px;
+    border: 1px solid var(--rule); background: rgba(255, 255, 255, .05); color: #fff;
+    font: 14px 'Space Mono', monospace;
+  }
+  #panel .row { display: flex; gap: 8px; margin-bottom: 10px; }
+  #panel .row input { margin-top: 0; }
+  #panel button {
+    font: 600 14px 'Inter Tight', sans-serif; padding: 10px 16px; border-radius: 999px;
+    border: 1px solid transparent; background: #fff; color: #000; cursor: pointer; margin: 0 6px 8px 0;
+  }
+  #panel button.ghost { background: transparent; color: #fff; border-color: var(--rule); }
+  #panel button:disabled { opacity: .5; cursor: progress; }
+  #panel .hint { font-size: 12px; color: var(--ui-dim); margin: 2px 0 12px; line-height: 1.5; }
+  #panel code { font-family: 'Space Mono', monospace; color: var(--ui); word-break: break-all; }
+  #panel .keys { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--ui-dim); line-height: 1.7; margin: 14px 0 0; }
+  #panel .warn { color: #ffb4a2; }
+
+  @media (max-width: 600px) {
+    #hud { padding: 16px; }
+    #progress { left: 16px; right: 16px; }
+    #panel { padding: 20px; }
+  }
+</style>
+</head>
+<body>
+<canvas id="bg"></canvas>
+<canvas id="fx"></canvas>
+<div id="stage"><div id="camera"></div></div>
+<div id="dots"><i></i><i></i><i></i></div>
+<div id="grain"></div>
+
+<header id="hud">
+  <div class="now">
+    <img id="art" alt="">
+    <div><b id="title">Lyric Box</b><span id="artist">—</span></div>
+  </div>
+  <div class="meta"><span id="styleBadge">—</span><span id="moodBadge"></span><span id="offsetBadge"></span></div>
+</header>
+<div id="progress"><i></i></div>
+<div id="toast"></div>
+
+<section id="panel" aria-label="Impostazioni">
+  <h1>Lyric Box</h1>
+  <p class="sub">Testi sincronizzati con motion che cambia col mood del brano.</p>
+
+  <div class="group">
+    <h2>Spotify</h2>
+    <label>Client ID
+      <input id="clientId" autocomplete="off" spellcheck="false" placeholder="dalla Spotify Developer Dashboard">
+    </label>
+    <p class="hint">Redirect URI da registrare nell'app: <code id="redirectUri"></code></p>
+    <p class="hint warn" id="originWarn" hidden></p>
+    <button id="connect">Connetti Spotify</button><button id="disconnect" class="ghost" hidden>Disconnetti</button>
+  </div>
+
+  <div class="group">
+    <h2>Senza Spotify</h2>
+    <div class="row"><input id="qArtist" placeholder="Artista"><input id="qTitle" placeholder="Titolo"></div>
+    <button id="search">Cerca su LRCLIB</button><button id="demo" class="ghost">Demo</button>
+    <p class="hint">Manuale: fai partire la canzone altrove e premi Spazio sul primo secondo.</p>
+  </div>
+
+  <p class="keys">Spazio play/pausa · ← → offset ±100ms (Shift ±500) · [ ] ±5s<br>S stile · H nascondi HUD · F schermo intero · Esc pannello</p>
+</section>
+
+<script>
+(() => {
+'use strict';
+
+/* ============================================================
+   Utilities
+   ============================================================ */
+const $ = (s) => document.querySelector(s);
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const lerp = (a, b, t) => a + (b - a) * t;
+// Frame-rate independent smoothing: same result at 30, 60 or 144 fps.
+const damp = (a, b, lambda, dt) => b + (a - b) * Math.exp(-lambda * dt);
+const mean = (xs) => xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : 0;
+
+const store = {
+  get(k, d = null) { try { const v = localStorage.getItem(k); return v === null ? d : v; } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch {} },
+  del(k) { try { localStorage.removeItem(k); } catch {} },
+  sget(k) { try { return sessionStorage.getItem(k); } catch { return null; } },
+  sset(k, v) { try { sessionStorage.setItem(k, v); } catch {} },
+};
+
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function mulberry32(a) {
+  return () => {
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+function hashStr(s) {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return h >>> 0;
+}
+function mk(tag, cls, text) {
+  const el = document.createElement(tag);
+  if (cls) el.className = cls;
+  if (text !== undefined) el.textContent = text;
+  return el;
+}
+
+let toastTimer = 0;
+function toast(msg, ms = 1800) {
+  const el = $('#toast');
+  el.textContent = msg; el.classList.add('on');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('on'), ms);
+}
+
+/* ============================================================
+   Springs
+   damping ratio ζ = damping / (2·√(stiffness·mass))
+   ζ < 1 overshoots (bouncy), ζ = 1 is critically damped, ζ > 1 is sluggish.
+   ============================================================ */
+class Spring {
+  constructor(x = 0, p) { this.x = x; this.v = 0; this.target = x; this.set(p || SPR.smooth); }
+  set({ stiffness = 170, damping = 26, mass = 1 }) { this.k = stiffness; this.c = damping; this.m = mass; return this; }
+  to(target) { this.target = target; return this; }
+  snap(x) { this.x = this.target = x; this.v = 0; return this; }
+  kick(v) { this.v += v; return this; }
+  step(dt) {
+    if (Math.abs(this.x - this.target) < 1e-4 && Math.abs(this.v) < 1e-4) { this.x = this.target; this.v = 0; return this.x; }
+    // Semi-implicit Euler with fixed sub-steps: stable for stiff springs at any frame rate.
+    let left = dt;
+    while (left > 1e-6) {
+      const h = Math.min(left, 1 / 240);
+      const a = (-this.k * (this.x - this.target) - this.c * this.v) / this.m;
+      this.v += a * h; this.x += this.v * h; left -= h;
+    }
+    return this.x;
+  }
+}
+
+const SPR = reduceMotion ? {
+  soft: { stiffness: 200, damping: 30 }, smooth: { stiffness: 200, damping: 30 },
+  pop: { stiffness: 200, damping: 30 }, slam: { stiffness: 200, damping: 30 },
+  scroll: { stiffness: 200, damping: 30 }, shake: { stiffness: 600, damping: 60 },
+  exit: { stiffness: 260, damping: 32 },
+} : {
+  soft:   { stiffness: 40,  damping: 12 },              // ζ≈0.95  calm drift
+  smooth: { stiffness: 120, damping: 22 },              // ζ≈1.00  no overshoot
+  pop:    { stiffness: 320, damping: 20 },              // ζ≈0.56  playful bounce
+  slam:   { stiffness: 520, damping: 26 },              // ζ≈0.57  heavy hit
+  scroll: { stiffness: 90,  damping: 15, mass: 0.9 },   // ζ≈0.83  line scroll (AMLL's posY spring)
+  shake:  { stiffness: 600, damping: 18 },              // ζ≈0.37  camera wobble
+  exit:   { stiffness: 260, damping: 32 },              // ζ≈0.99  quick clean exit
+};
+
+// A DOM element whose transform/opacity/filter are driven by springs.
+// Only compositor-friendly properties are touched every frame.
+class Sprite {
+  constructor(el, p = SPR.smooth) {
+    this.el = el; this.pre = '';
+    this.x = new Spring(0, p); this.y = new Spring(0, p); this.s = new Spring(1, p);
+    this.o = new Spring(0, p); this.b = new Spring(0, p); this.r = new Spring(0, p);
+    this.glow = 0; this.p = -1; this.on = false;
+    this._t = ''; this._o = ''; this._f = '';
+  }
+  set(p) { for (const k of 'xysobr') this[k].set(p); return this; }
+  step(dt) { for (const k of 'xysobr') this[k].step(dt); return this; }
+  render() {
+    const t = `${this.pre}translate3d(${this.x.x.toFixed(2)}px,${this.y.x.toFixed(2)}px,0) rotate(${this.r.x.toFixed(2)}deg) scale(${Math.max(0, this.s.x).toFixed(4)})`;
+    const o = clamp(this.o.x).toFixed(3);
+    const b = reduceMotion ? 0 : Math.max(0, this.b.x);
+    let f = b > 0.15 ? `blur(${b.toFixed(2)}px)` : '';
+    if (this.glow > 0.02) f += ` drop-shadow(0 0 ${(6 + 18 * this.glow).toFixed(1)}px rgba(255,255,255,${(0.55 * this.glow).toFixed(3)}))`;
+    f = f || 'none';
+    const st = this.el.style;
+    if (t !== this._t) { st.transform = t; this._t = t; }
+    if (o !== this._o) { st.opacity = o; this._o = o; }
+    if (f !== this._f) { st.filter = f; this._f = f; }
+  }
+  progress(p) {
+    if (p !== this.p && (Math.abs(p - this.p) > 0.002 || p === 0 || p === 1)) {
+      this.el.style.setProperty('--p', p.toFixed(3)); this.p = p;
+    }
+  }
+}
+
+/* ============================================================
+   Lyrics: LRC / enhanced-LRC parsing and word timing
+   ============================================================ */
+const toMs = (m, s) => Math.round((+m * 60 + parseFloat(s.replace(':', '.'))) * 1000);
+const VOWELS = /[aeiouyàáâäèéêëìíîïòóôöùúûü]+/gi;
+const syl = (w) => Math.max(1, (w.match(VOWELS) || []).length);
+
+function parseLRC(src) {
+  let offset = 0;
+  const rows = [];
+  const tag = /\[(\d{1,3}):(\d{1,2}(?:[.:]\d{1,3})?)\]/y;
+  for (const raw of src.split(/\r?\n/)) {
+    const off = raw.match(/^\[offset:\s*([+-]?\d+)\]/i);
+    if (off) { offset = +off[1]; continue; }
+    const times = [];
+    tag.lastIndex = 0;
+    let m, end = 0;
+    while ((m = tag.exec(raw))) { times.push(toMs(m[1], m[2])); end = tag.lastIndex; }
+    if (!times.length) continue;
+    const body = raw.slice(end);
+    for (const t of times) rows.push({ t: t - offset, body });
+  }
+  rows.sort((a, b) => a.t - b.t);
+  return rows.map((r) => ({ t: r.t, ...parseBody(r.body, r.t) }));
+}
+
+// Enhanced LRC: "<mm:ss.xx>word <mm:ss.xx>word <mm:ss.xx>"
+function parseBody(body, t0) {
+  const re = /<(\d{1,3}):(\d{1,2}(?:\.\d{1,3})?)>/g;
+  if (!re.test(body)) return { text: body.trim(), words: null };
+  re.lastIndex = 0;
+  const toks = [];
+  let m, cur = 0;
+  while ((m = re.exec(body))) {
+    if (m.index > cur) toks.push({ s: body.slice(cur, m.index) });
+    toks.push({ t: toMs(m[1], m[2]) });
+    cur = re.lastIndex;
+  }
+  if (cur < body.length) toks.push({ s: body.slice(cur) });
+  const words = [];
+  let start = t0;
+  toks.forEach((k, i) => {
+    if (k.t !== undefined) { start = k.t; return; }
+    const parts = k.s.split(/\s+/).filter(Boolean);
+    if (!parts.length) return;
+    const next = toks.slice(i + 1).find((x) => x.t !== undefined);
+    const end = next ? next.t : null;
+    parts.forEach((p, j) => words.push({
+      text: p,
+      t: end != null ? start + (end - start) * j / parts.length : start,
+      end: end != null ? start + (end - start) * (j + 1) / parts.length : null,
+    }));
+  });
+  return { text: words.map((w) => w.text).join(' '), words };
+}
+
+// Line-synced lyrics only say when a line starts. Spread the words over the
+// line by syllable weight, with a little extra hold on words before punctuation.
+function estimateWords(text, line) {
+  const parts = text.split(/\s+/).filter(Boolean);
+  const dur = line.end - line.t;
+  const span = Math.min(dur * 0.92, Math.max(dur * 0.55, parts.length * 620 + 800));
+  const weights = parts.map((p) => syl(p) + 0.35 + (/[,;:.!?…]$/.test(p) ? 0.6 : 0));
+  const total = weights.reduce((a, b) => a + b, 0) || 1;
+  let acc = 0;
+  return parts.map((p, i) => {
+    const t = line.t + span * acc / total;
+    acc += weights[i];
+    return { text: p, t, end: line.t + span * acc / total, i };
+  });
+}
+
+function fixWordTimes(words, line) {
+  return words.map((w, i) => ({
+    text: w.text, i,
+    t: w.t,
+    end: w.end ?? Math.min(line.end, (words[i + 1]?.t ?? w.t + 700)),
+  }));
+}
+
+// Group very short words so the one-word-at-a-time "impact" style doesn't strobe.
+function groupWords(words, minDur = 260) {
+  const groups = [];
+  let g = null;
+  for (const w of words) {
+    if (!g) g = { t: w.t, end: w.end, words: [w] };
+    else { g.words.push(w); g.end = w.end; }
+    const text = g.words.map((x) => x.text).join(' ');
+    if (g.end - g.t >= minDur || text.length > 11) { g.text = text; groups.push(g); g = null; }
+  }
+  if (g) { g.text = g.words.map((x) => x.text).join(' '); groups.push(g); }
+  return groups;
+}
+
+/* ============================================================
+   Expression engine
+   Rough stand-in for Cotodama's: estimate an impression (valence/arousal)
+   per line, detect the chorus from repetition (Watanabe & Goto's main cue),
+   split into sections and pick a motion style + font per section.
+   ============================================================ */
+const LEX = {
+  hi: 'fire burn burning run running scream shout wild dance dancing fight crazy jump loud party rage fast faster go higher bang boom shake electric thunder storm wake alive rush fuoco brucia bruciano corri corre corrono urla grida balla ballare salta saltano lotta forte veloce ritmo spinge onda esplode tuono tempesta vivo volume',
+  lo: 'sleep slow slowly quiet rain alone soft dream dreaming moon silence whisper calm gentle breathe still lonely snow tired fade dormo dormire piano lento pioggia solo sola sogno sogni luna silenzio sussurro calma respirare neve stanco vuota sospese aria',
+  pos: 'love happy smile sun light shine gold heaven sweet kiss beautiful bright joy free together hope amore felice sorriso sole luce brilla oro cielo dolce bacio bella bello gioia libero insieme speranza',
+  neg: 'cry crying pain die dying cold lonely tears broken dark lie lies hate hurt lost fear blood sad goodbye piangere piango dolore muore freddo lacrime rotto buio bugie odio male perso paura sangue triste addio',
+};
+const LEXS = Object.fromEntries(Object.entries(LEX).map(([k, v]) => [k, new Set(v.split(' '))]));
+const norm = (s) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+  .replace(/[^\p{L}\p{N}\s]/gu, ' ').replace(/\s+/g, ' ').trim();
+
+function buildSong(rows, durationMs) {
+  const lines = [];
+  rows.forEach((r, i) => {
+    if (!r.text.trim()) return;                     // empty rows only mark where a line ends
+    const next = rows[i + 1];
+    const end = next ? next.t : Math.min(r.t + 6000, durationMs || r.t + 6000);
+    const line = { i: lines.length, t: r.t, end, text: r.text };
+    line.words = r.words ? fixWordTimes(r.words, line) : estimateWords(r.text, line);
+    line.sungEnd = line.words.length ? line.words[line.words.length - 1].end : line.end;
+    line.bg = /^\(.*\)$/.test(r.text.trim());
+    lines.push(line);
+  });
+  return analyse({ lines, duration: durationMs || (lines.length ? lines[lines.length - 1].end + 4000 : 0) });
+}
+
+function analyse(song) {
+  const { lines } = song;
+  // 1) Chorus = runs of lines that repeat elsewhere in the song.
+  const keys = lines.map((l) => norm(l.text));
+  const count = new Map();
+  keys.forEach((k) => count.set(k, (count.get(k) || 0) + 1));
+  const rep = keys.map((k) => k.split(' ').length >= 3 && count.get(k) >= 2);
+  for (let i = 0; i < lines.length;) {
+    if (!rep[i]) { i++; continue; }
+    let j = i;
+    while (j < lines.length && rep[j]) j++;
+    const strong = j - i >= 2 || count.get(keys[i]) >= 3;
+    for (let k = i; k < j; k++) lines[k].chorus = strong;
+    i = j;
+  }
+  // 2) Impression per line: singing density + a tiny arousal/valence lexicon.
+  for (const l of lines) {
+    const ws = norm(l.text).split(' ').filter(Boolean);
+    let hi = 0, lo = 0, pos = 0, neg = 0, sy = 0;
+    for (const w of ws) {
+      hi += LEXS.hi.has(w); lo += LEXS.lo.has(w); pos += LEXS.pos.has(w); neg += LEXS.neg.has(w);
+      sy += syl(w);
+    }
+    const n = Math.sqrt(ws.length || 1);
+    l.rate = sy / clamp((l.end - l.t) / 1000, 0.8, 8);           // syllables per second
+    const rateN = clamp((l.rate - 1.5) / 4);
+    const lexA = clamp(0.5 + 0.35 * (hi - lo) / n);
+    const shout = /!/.test(l.text) || (l.text.length > 4 && l.text === l.text.toUpperCase() && /\p{Lu}/u.test(l.text)) ? 0.12 : 0;
+    l.energy = clamp(0.65 * rateN + 0.35 * lexA + shout + (l.chorus ? 0.08 : 0));
+    l.valence = clamp((pos - neg) / n, -1, 1);
+  }
+  // Smooth the trajectory forwards and backwards so one odd line doesn't flip the mood.
+  for (let pass = 0; pass < 2; pass++) {
+    const order = pass ? [...lines].reverse() : lines;
+    let prev = null;
+    for (const l of order) { if (prev != null) l.energy = lerp(l.energy, prev, 0.35); prev = l.energy; }
+  }
+  // 3) Sections: split at chorus boundaries and long gaps.
+  const sections = [];
+  let cur = null;
+  lines.forEach((l, i) => {
+    const prev = lines[i - 1];
+    const gap = prev ? l.t - prev.sungEnd : 0;
+    if (!cur || !!l.chorus !== cur.chorus || gap > 3500) { cur = { chorus: !!l.chorus, lines: [] }; sections.push(cur); }
+    cur.lines.push(l); l.section = cur;
+  });
+  song.arousal = mean(lines.map((l) => l.energy));
+  song.valence = mean(lines.map((l) => l.valence));
+  // 4) Mood → motion. Calm words get calm motion, lively words dynamic motion,
+  //    the chorus gets the strongest one.
+  for (const s of sections) {
+    s.energy = mean(s.lines.map((l) => l.energy));
+    s.valence = mean(s.lines.map((l) => l.valence));
+    if (s.chorus) s.style = song.arousal < 0.34 ? 'cloud' : 'impact';
+    else if (s.energy < 0.4) s.style = 'drift';
+    else if (s.valence < -0.12) s.style = 'crawl';
+    else s.style = 'kinetic';
+  }
+  song.sections = sections;
+  return song;
+}
+
+/* ============================================================
+   Motion styles
+   ============================================================ */
+const wp = (w, t) => clamp((t - w.t) / Math.max(1, w.end - w.t));
+// Long held words get a soft glow and lift, proportional to how long they're held.
+const emphasis = (w, p) => {
+  const dur = w.end - w.t;
+  return dur > 900 && p > 0 && p < 1 ? Math.sin(Math.PI * p) * clamp((dur - 900) / 1500) : 0;
+};
+
+class Style {
+  constructor(name, parent) {
+    this.name = name;
+    this.root = mk('div', 'style ' + name);
+    parent.appendChild(this.root);
+    this.views = [];
+  }
+  enter() {}
+  clear() { for (const v of this.views) v.leaving = true; }
+  reset() { this.root.replaceChildren(); this.views = []; }
+  remove(v) { v.el.remove(); this.views.splice(this.views.indexOf(v), 1); }
+  wordSprites(line, p, cls = 'w') {
+    return line.words.map((w) => new Sprite(mk('span', cls, w.text), p));
+  }
+  mount(el, sprites) {
+    sprites.forEach((sp, k) => { el.append(sp.el); if (k < sprites.length - 1) el.append(' '); });
+  }
+}
+
+// Calm: whole line visible but faint and blurred, words come into focus as they're sung,
+// old lines float up and dissolve.
+class Drift extends Style {
+  constructor(p) { super('drift', p); }
+  enter(line, ctx) {
+    for (const v of this.views) v.rank++;
+    const el = mk('div', 'line' + (line.bg ? ' bgv' : ''));
+    const fs = clamp(ctx.W * 0.84 * 1.9 / (Math.max(line.text.length, 8) * 0.5), 22, ctx.H * 0.085) * (line.bg ? 0.7 : 1);
+    el.style.fontSize = fs + 'px';
+    const sprites = this.wordSprites(line, SPR.soft);
+    for (const sp of sprites) { sp.o.snap(0.2); sp.b.snap(3); sp.y.snap(fs * 0.15); }
+    this.mount(el, sprites);
+    this.root.append(el);
+    this.views.push({
+      el, line, sprites, fs, rank: 0, float: 0, h: el.offsetHeight,
+      y: new Spring(fs * 0.9, SPR.scroll), o: new Spring(0, SPR.smooth),
+      b: new Spring(8, SPR.smooth), s: new Spring(1, SPR.smooth),
+    });
+  }
+  frame(ctx) {
+    const { t, dt } = ctx;
+    let acc = 0, prevH = 0;
+    for (let i = this.views.length - 1; i >= 0; i--) {
+      const v = this.views[i];
+      if (v.rank === 0) v.y.to(0);
+      else { acc -= prevH / 2 + v.h / 2 + v.fs * 0.35; v.y.to(acc); }
+      prevH = v.h;
+      const live = !v.leaving;
+      v.o.to(live ? (v.rank === 0 ? 1 : v.rank === 1 ? 0.3 : 0) : 0);
+      v.b.to(live && v.rank === 0 ? 0 : 2.5 + v.rank * 2);
+      v.s.to(v.rank === 0 ? 1 : 0.94);
+      v.float -= dt * (6 + 10 * ctx.energy);
+      v.line.words.forEach((w, k) => {
+        const sp = v.sprites[k];
+        const p = wp(w, t);
+        if (t >= w.t) {
+          sp.o.to(1); sp.b.to(0); sp.y.to(-v.fs * 0.06 * emphasis(w, p));
+          if (!sp.on) { sp.on = true; ctx.hit(0.08); }
+        } else { sp.o.to(0.2); sp.b.to(3); sp.y.to(v.fs * 0.15); sp.on = false; }
+        sp.glow = emphasis(w, p);
+        sp.progress(p);
+        sp.step(dt).render();
+      });
+      v.y.step(dt); v.o.step(dt); v.b.step(dt); v.s.step(dt);
+      v.el.style.transform = `translate(-50%,-50%) translate3d(0,${(v.y.x + v.float).toFixed(2)}px,0) scale(${v.s.x.toFixed(4)})`;
+      v.el.style.opacity = clamp(v.o.x).toFixed(3);
+      const b = reduceMotion ? 0 : v.b.x;
+      v.el.style.filter = b > 0.15 ? `blur(${b.toFixed(2)}px)` : 'none';
+      if ((v.rank >= 2 || v.leaving) && v.o.x < 0.01) this.remove(v);
+    }
+  }
+}
+
+// Dynamic: big left-aligned line, words pop in with an underdamped spring as they're sung.
+class Kinetic extends Style {
+  constructor(p) { super('kinetic', p); }
+  enter(line, ctx) {
+    this.clear();
+    const el = mk('div', 'line' + (line.bg ? ' bgv' : ''));
+    const chars = line.text.length;
+    const rows = chars < 16 ? 1 : chars < 38 ? 2 : 3;
+    const fs = clamp(ctx.W * 0.84 / (Math.ceil(chars / rows) * 0.52), 28, ctx.H * 0.17) * (line.bg ? 0.6 : 1);
+    el.style.fontSize = fs + 'px';
+    const rng = mulberry32(hashStr(line.text) + line.i);
+    const sprites = this.wordSprites(line, SPR.pop);
+    for (const sp of sprites) { sp.s.snap(0.55); sp.y.snap(fs * 0.45); sp.r.snap((rng() - 0.5) * 14); sp.b.snap(4); }
+    this.mount(el, sprites);
+    this.root.append(el);
+    el.style.transform = 'translateY(-50%)';
+    this.views.push({ el, line, sprites, fs });
+  }
+  clear() {
+    for (const v of this.views) if (!v.leaving) { v.leaving = true; v.left = 0; }
+  }
+  frame(ctx) {
+    const { t, dt } = ctx;
+    for (const v of [...this.views]) {
+      if (v.leaving) v.left += dt;
+      let alive = false;
+      v.line.words.forEach((w, k) => {
+        const sp = v.sprites[k];
+        const p = wp(w, t);
+        if (v.leaving) {
+          if (v.left > k * 0.018) { sp.set(SPR.exit); sp.y.to(-v.fs * 1.1); sp.o.to(0); sp.b.to(8); sp.s.to(0.96); }
+        } else if (t >= w.t) {
+          const e = emphasis(w, p);
+          sp.o.to(1); sp.s.to(1 + 0.08 * e); sp.y.to(-v.fs * 0.05 * e); sp.r.to(0); sp.b.to(0);
+          if (!sp.on) { sp.on = true; ctx.hit(0.22 + 0.2 * ctx.energy); }
+          sp.glow = e;
+        } else {
+          sp.o.to(0); sp.s.to(0.55); sp.y.to(v.fs * 0.45); sp.on = false;
+        }
+        sp.progress(p);
+        sp.step(dt).render();
+        if (sp.o.x > 0.01 || sp.o.target > 0) alive = true;
+      });
+      if (v.leaving && !alive) this.remove(v);
+    }
+  }
+}
+
+// Chorus: one (group of) word(s) at a time, filling the screen, slammed in with camera shake.
+// The full line stays small at the bottom so it's still readable.
+class Impact extends Style {
+  constructor(p) { super('impact', p); this.bigs = []; this.line = null; this.gi = -1; }
+  enter(line, ctx) {
+    for (const v of this.views) v.leaving = true;
+    this.line = line; this.gi = -1;
+    line.groups = line.groups || groupWords(line.words);
+    const el = mk('div', 'line');
+    const sprites = this.wordSprites(line, SPR.smooth);
+    this.mount(el, sprites);
+    this.root.append(el);
+    el.style.transform = 'translateX(-50%)';
+    this.views.push({ el, line, sprites, o: new Spring(0, SPR.smooth).to(0.85) });
+  }
+  clear() { super.clear(); this.line = null; for (const b of this.bigs) this.retire(b); }
+  reset() { super.reset(); this.bigs = []; this.line = null; }
+  // No blur on these: filters on screen-sized glyphs halve the frame rate. Scale + fade is free.
+  retire(b) { b.dying = true; b.set(SPR.exit); b.o.to(0); b.s.to(1.18); }
+  spawn(g, ctx) {
+    for (const b of this.bigs) if (!b.dying) this.retire(b);
+    const el = mk('div', 'big', g.text);
+    el.style.fontSize = '100px';
+    this.root.append(el);
+    const fs = Math.min(ctx.H * 0.5, ctx.W * 0.86 * 100 / Math.max(el.offsetWidth, 1));
+    el.style.fontSize = fs.toFixed(1) + 'px';
+    const rng = mulberry32(hashStr(g.text) + (this.line ? this.line.i : 0));
+    const sp = new Sprite(el, SPR.slam);
+    sp.pre = 'translate(-50%,-50%) ';
+    sp.s.snap(1.75); sp.o.snap(0); sp.r.snap((rng() - 0.5) * 10);
+    sp.s.to(1); sp.o.to(1); sp.r.to(0);
+    this.bigs.push(sp);
+    ctx.hit(0.6 + 0.4 * ctx.energy, true);
+  }
+  frame(ctx) {
+    const { t, dt } = ctx;
+    if (this.line) {
+      const gs = this.line.groups;
+      let gi = -1;
+      for (let k = 0; k < gs.length; k++) if (t >= gs[k].t) gi = k;
+      if (gi !== this.gi && gi >= 0) { this.gi = gi; this.spawn(gs[gi], ctx); }
+    }
+    for (const b of [...this.bigs]) {
+      b.step(dt).render();
+      if (b.dying && b.o.x < 0.01) { b.el.remove(); this.bigs.splice(this.bigs.indexOf(b), 1); }
+    }
+    for (const v of [...this.views]) {
+      v.o.to(v.leaving ? 0 : 0.85).step(dt);
+      v.el.style.opacity = clamp(v.o.x).toFixed(3);
+      v.line.words.forEach((w, k) => { const sp = v.sprites[k]; sp.o.snap(1); sp.progress(wp(w, t)); sp.render(); });
+      if (v.leaving && v.o.x < 0.01) this.remove(v);
+    }
+  }
+}
+
+// Word cloud: every sung word lands somewhere free on screen and lingers, dimming with age.
+class Cloud extends Style {
+  constructor(p) { super('cloud', p); this.items = []; this.line = null; this.next = 0; }
+  enter(line) { this.line = line; this.next = 0; }
+  clear() { this.line = null; for (const it of this.items) it.dying = true; }
+  reset() { super.reset(); this.items = []; this.line = null; }
+  spawn(w, ctx) {
+    const line = this.line;
+    const rng = mulberry32(hashStr(w.text) + line.i * 131 + w.i * 7);
+    const el = mk('span', 'cw w', w.text);
+    const held = w.end - w.t > 800 ? 1.35 : 1;
+    el.style.fontSize = clamp(ctx.H * (0.045 + 0.02 * syl(w.text)) * held, 20, ctx.H * 0.18).toFixed(1) + 'px';
+    if (rng() < 0.5) { el.style.fontFamily = "'Fraunces', serif"; el.style.fontStyle = rng() < 0.5 ? 'italic' : 'normal'; el.style.fontWeight = '600'; }
+    else el.style.fontWeight = rng() < 0.5 ? '800' : '300';
+    this.root.append(el);
+    const bw = el.offsetWidth, bh = el.offsetHeight;
+    const live = this.items.filter((it) => !it.dying);
+    let best = null, bestScore = Infinity;
+    for (let k = 0; k < 48; k++) {
+      const x = clamp(ctx.W * (0.06 + 0.88 * rng()) - bw / 2, 12, ctx.W - bw - 12);
+      const y = clamp(ctx.H * (0.12 + 0.74 * rng()) - bh / 2, 60, ctx.H - bh - 50);
+      let score = 0;
+      for (const it of live) {
+        const ox = Math.max(0, Math.min(x + bw, it.rx + it.rw) - Math.max(x, it.rx));
+        const oy = Math.max(0, Math.min(y + bh, it.ry + it.rh) - Math.max(y, it.ry));
+        score += ox * oy * (it.line === line ? 3 : 1);
+      }
+      if (score < bestScore) { bestScore = score; best = { x, y }; }
+      if (score === 0) break;
+    }
+    el.style.left = best.x.toFixed(1) + 'px';
+    el.style.top = best.y.toFixed(1) + 'px';
+    const sp = new Sprite(el, SPR.pop);
+    sp.s.snap(0.5); sp.b.snap(10); sp.s.to(1); sp.o.to(1); sp.b.to(0);
+    Object.assign(sp, { rx: best.x, ry: best.y, rw: bw, rh: bh, line, word: w, seed: rng() * 100 });
+    this.items.push(sp);
+    const alive = this.items.filter((it) => !it.dying);
+    if (alive.length > 26) alive[0].dying = true;
+    ctx.hit(0.15);
+  }
+  frame(ctx) {
+    const { t, dt } = ctx;
+    if (this.line) {
+      const ws = this.line.words;
+      while (this.next < ws.length && t >= ws[this.next].t) this.spawn(ws[this.next++], ctx);
+    }
+    for (const it of [...this.items]) {
+      const p = wp(it.word, t);
+      it.o.to(it.dying ? 0 : it.line === this.line ? (p < 1 ? 1 : 0.62) : 0.16);
+      it.b.to(it.dying ? 8 : it.line === this.line ? 0 : 1.2);
+      // Slow parallax drift so the cloud never looks frozen.
+      it.x.to(Math.sin(ctx.now / 4000 + it.seed) * 10);
+      it.y.to(Math.cos(ctx.now / 5000 + it.seed) * 8);
+      it.glow = emphasis(it.word, p);
+      it.progress(p);
+      it.step(dt).render();
+      if (it.dying && it.o.x < 0.01) { it.el.remove(); this.items.splice(this.items.indexOf(it), 1); }
+    }
+  }
+}
+
+// Slanted ticker: the line slides right→left so the word being sung sits near the centre.
+class Crawl extends Style {
+  constructor(p) { super('crawl', p); }
+  enter(line, ctx) {
+    for (const v of this.views) v.leaving = true;
+    const el = mk('div', 'line' + (line.bg ? ' bgv' : ''));
+    const fs = ctx.H * (line.bg ? 0.07 : 0.11);
+    el.style.fontSize = fs + 'px';
+    const sprites = this.wordSprites(line, SPR.smooth);
+    this.mount(el, sprites);
+    this.root.append(el);
+    const centers = sprites.map((sp) => sp.el.offsetLeft + sp.el.offsetWidth / 2);
+    const rng = mulberry32(hashStr(line.text) + line.i);
+    const angles = [-9, -6, -3, 4, 7];
+    this.views.push({
+      el, line, sprites, centers, width: el.offsetWidth,
+      angle: reduceMotion ? 0 : angles[Math.floor(rng() * angles.length)],
+      yc: ctx.H * (0.5 + (rng() - 0.5) * 0.28),
+      x: ctx.W * 1.05 - centers[0], vx: 0, o: new Spring(1, SPR.smooth),
+    });
+  }
+  frame(ctx) {
+    const { t, dt, W } = ctx;
+    for (const v of [...this.views]) {
+      const ws = v.line.words;
+      const px = v.x;
+      if (!v.leaving) {
+        let pos;
+        if (t < ws[0].t) pos = v.centers[0] - (ws[0].t - t) * W * 0.0004;
+        else {
+          let k = ws.length - 1;
+          while (k > 0 && t < ws[k].t) k--;
+          const nextC = k + 1 < ws.length ? v.centers[k + 1] : v.width;
+          const nextT = k + 1 < ws.length ? ws[k + 1].t : ws[k].end;
+          pos = lerp(v.centers[k], nextC, clamp((t - ws[k].t) / Math.max(1, nextT - ws[k].t)));
+        }
+        v.x = damp(v.x, W * 0.58 - pos, 5, dt);
+        v.vx = (v.x - px) / Math.max(dt, 1e-3);
+      } else {
+        v.vx = Math.min(v.vx, -W * 0.3) * 1.0 - W * 0.4 * dt;
+        v.x += v.vx * dt;
+        v.o.to(v.x + v.width < 0 ? 0 : 0.5);
+      }
+      v.o.step(dt);
+      ws.forEach((w, k) => {
+        const sp = v.sprites[k];
+        sp.o.snap(1);
+        if (t >= w.t && !sp.on) { sp.on = true; ctx.hit(0.12); }
+        sp.progress(wp(w, t));
+        sp.render();
+      });
+      v.el.style.transform = `translate3d(${v.x.toFixed(2)}px,${v.yc.toFixed(2)}px,0) rotate(${v.angle}deg) translateY(-50%)`;
+      v.el.style.opacity = clamp(v.o.x).toFixed(3);
+      if (v.leaving && (v.x + v.width < -20 || v.o.x < 0.01)) this.remove(v);
+    }
+  }
+}
+
+/* ============================================================
+   Background: mesh-like gradient from the cover palette (WebGL),
+   rendered at low resolution because it's all low frequency anyway.
+   ============================================================ */
+const BG_SCALE = 0.33;
+const bg = (() => {
+  const canvas = $('#bg');
+  const gl = canvas.getContext('webgl', { antialias: false, premultipliedAlpha: false, preserveDrawingBuffer: false });
+  if (!gl) { canvas.style.background = 'radial-gradient(circle at 30% 30%, #26213a, #07070a 70%)'; return { draw() {}, resize() {} }; }
+  const vs = 'attribute vec2 a;void main(){gl_Position=vec4(a,0.,1.);}';
+  const fs = `precision highp float;
+uniform vec2 r;uniform float t,pulse,energy;uniform vec3 c0,c1,c2,c3,c4;
+float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+float n(vec2 p){vec2 i=floor(p),f=fract(p);vec2 u=f*f*(3.-2.*f);
+  return mix(mix(h(i),h(i+vec2(1,0)),u.x),mix(h(i+vec2(0,1)),h(i+vec2(1,1)),u.x),u.y);}
+vec3 blob(vec2 q,vec2 c,vec3 col,float s,inout float W){float w=exp(-dot(q-c,q-c)/s);W+=w;return col*w;}
+void main(){
+  vec2 uv=gl_FragCoord.xy/r;vec2 p=uv;p.x*=r.x/r.y;
+  float s=t*(.035+.05*energy);
+  vec2 q=p+.32*vec2(n(p*1.4+s),n(p*1.4-s+7.3))-.16;
+  float W=.0001;vec3 col=vec3(0.);
+  float ax=r.x/r.y;
+  col+=blob(q,vec2(ax*(.25+.18*sin(s*1.3)),.30+.20*cos(s*1.7)),c0,.20,W);
+  col+=blob(q,vec2(ax*(.75+.15*cos(s*1.1)),.70+.18*sin(s*1.5)),c1,.22,W);
+  col+=blob(q,vec2(ax*(.55+.25*sin(s*.7+2.)),.20+.15*sin(s*1.9)),c2,.18,W);
+  col+=blob(q,vec2(ax*(.15+.12*cos(s*.9+1.)),.85+.10*cos(s*1.2)),c3,.16,W);
+  col+=blob(q,vec2(ax*(.90+.08*sin(s*1.6)),.15+.12*cos(s*.8)),c4,.14,W);
+  col/=W;
+  col*=1.+pulse*.22;
+  col*=mix(.45,1.,smoothstep(1.15,.25,length(uv-.5)*1.5));
+  gl_FragColor=vec4(col,1.);
+}`;
+  const sh = (type, src) => { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); return s; };
+  const prog = gl.createProgram();
+  gl.attachShader(prog, sh(gl.VERTEX_SHADER, vs));
+  gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, fs));
+  gl.linkProgram(prog);
+  if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) { console.warn(gl.getProgramInfoLog(prog)); return { draw() {}, resize() {} }; }
+  gl.useProgram(prog);
+  const buf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+  const loc = gl.getAttribLocation(prog, 'a');
+  gl.enableVertexAttribArray(loc);
+  gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+  const U = {};
+  for (const k of ['r', 't', 'pulse', 'energy', 'c0', 'c1', 'c2', 'c3', 'c4']) U[k] = gl.getUniformLocation(prog, k);
+  return {
+    resize() {
+      canvas.width = Math.max(2, Math.round(innerWidth * BG_SCALE));
+      canvas.height = Math.max(2, Math.round(innerHeight * BG_SCALE));
+      gl.viewport(0, 0, canvas.width, canvas.height);
+    },
+    draw(time, pulse, energy, cols) {
+      gl.uniform2f(U.r, canvas.width, canvas.height);
+      gl.uniform1f(U.t, time); gl.uniform1f(U.pulse, pulse); gl.uniform1f(U.energy, energy);
+      cols.forEach((c, i) => gl.uniform3f(U['c' + i], c[0], c[1], c[2]));
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
+    },
+  };
+})();
+
+/* Geometric fallback for instrumentals / missing lyrics / long interludes (Cotodama does the same). */
+const fx = (() => {
+  const canvas = $('#fx');
+  const g = canvas.getContext('2d');
+  return {
+    resize() { canvas.width = innerWidth; canvas.height = innerHeight; },
+    draw(level, time, pulse, accent) {
+      g.clearRect(0, 0, canvas.width, canvas.height);
+      if (level < 0.01) return;
+      const W = canvas.width, H = canvas.height, cx = W / 2, cy = H / 2, R = Math.min(W, H);
+      g.save();
+      g.translate(cx, cy);
+      g.lineWidth = 1.2;
+      for (let k = 0; k < 6; k++) {
+        const sides = 3 + k;
+        const rad = R * (0.08 + k * 0.065) * (1 + pulse * 0.08 * (6 - k) / 6);
+        const rot = time * (0.05 + k * 0.02) * (k % 2 ? -1 : 1);
+        g.strokeStyle = `rgba(${accent},${(0.5 - k * 0.06) * level})`;
+        g.beginPath();
+        for (let i = 0; i <= sides; i++) {
+          const a = rot + i / sides * Math.PI * 2;
+          i ? g.lineTo(Math.cos(a) * rad, Math.sin(a) * rad) : g.moveTo(Math.cos(a) * rad, Math.sin(a) * rad);
+        }
+        g.stroke();
+      }
+      for (let i = 0; i < 28; i++) {
+        const a = time * 0.12 + i / 28 * Math.PI * 2;
+        const rr = R * (0.34 + 0.03 * Math.sin(time * 0.8 + i));
+        g.fillStyle = `rgba(255,255,255,${0.5 * level})`;
+        g.beginPath(); g.arc(Math.cos(a) * rr, Math.sin(a) * rr, 1.6 + pulse * 2, 0, Math.PI * 2); g.fill();
+      }
+      g.restore();
+    },
+  };
+})();
+
+/* ============================================================
+   Palette from album art (k-means on a 40×40 thumbnail)
+   ============================================================ */
+const DEMO_PALETTE = { bg: [[0.09, 0.07, 0.22], [0.30, 0.08, 0.26], [0.05, 0.16, 0.28], [0.32, 0.18, 0.06], [0.12, 0.05, 0.12]], accent: [255, 207, 122] };
+
+function rgb2hsl([r, g, b]) {
+  r /= 255; g /= 255; b /= 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b), l = (max + min) / 2;
+  if (max === min) return [0, 0, l];
+  const d = max - min, s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+  const h = max === r ? (g - b) / d + (g < b ? 6 : 0) : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  return [h / 6, s, l];
+}
+function hsl2rgb([h, s, l]) {
+  const f = (n) => { const k = (n + h * 12) % 12, a = s * Math.min(l, 1 - l); return l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1)); };
+  return [f(0), f(8), f(4)];
+}
+
+async function paletteFrom(url) {
+  const img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.src = url;
+  await img.decode();
+  const c = document.createElement('canvas');
+  c.width = c.height = 40;
+  const g = c.getContext('2d', { willReadFrequently: true });
+  g.drawImage(img, 0, 0, 40, 40);
+  const d = g.getImageData(0, 0, 40, 40).data;
+  const px = [];
+  for (let i = 0; i < d.length; i += 4) px.push([d[i], d[i + 1], d[i + 2]]);
+  px.sort((a, b) => (a[0] + a[1] + a[2]) - (b[0] + b[1] + b[2]));
+  const K = 5;
+  let cents = Array.from({ length: K }, (_, k) => [...px[Math.floor((k + 0.5) / K * px.length)]]);
+  let counts = new Array(K).fill(0);
+  for (let it = 0; it < 10; it++) {
+    const sums = cents.map(() => [0, 0, 0]);
+    counts = new Array(K).fill(0);
+    for (const p of px) {
+      let bi = 0, bd = Infinity;
+      cents.forEach((cc, k) => { const dd = (p[0] - cc[0]) ** 2 + (p[1] - cc[1]) ** 2 + (p[2] - cc[2]) ** 2; if (dd < bd) { bd = dd; bi = k; } });
+      sums[bi][0] += p[0]; sums[bi][1] += p[1]; sums[bi][2] += p[2]; counts[bi]++;
+    }
+    cents = cents.map((cc, k) => counts[k] ? sums[k].map((s) => s / counts[k]) : cc);
+  }
+  const cl = cents.map((c, k) => ({ c, n: counts[k], hsl: rgb2hsl(c) })).sort((a, b) => b.n - a.n);
+  const bgCols = cl.map(({ hsl: [h, s, l] }) => hsl2rgb([h, clamp(s * 1.15, 0, 0.85), clamp(l * 0.55, 0.06, 0.36)]));
+  const vivid = [...cl].sort((a, b) => b.hsl[1] * (0.4 + b.hsl[2]) - a.hsl[1] * (0.4 + a.hsl[2]))[0].hsl;
+  const accent = hsl2rgb([vivid[0], clamp(vivid[1], 0.35, 0.9), Math.max(vivid[2], 0.72)]).map((v) => Math.round(v * 255));
+  return { bg: bgCols, accent };
+}
+
+/* ============================================================
+   Playback clock
+   Spotify only tells us the position when we poll. We extrapolate with
+   performance.now() and slew small corrections instead of jumping, so the
+   lyric fill never stutters. Big differences are treated as a seek.
+   ============================================================ */
+const clock = {
+  base: 0, baseAt: performance.now(), playing: false, pending: 0, seeked: false,
+  now() { return this.base + (this.playing ? performance.now() - this.baseAt : 0); },
+  set(ms, playing, seek = true) { this.base = ms; this.baseAt = performance.now(); this.playing = playing; this.pending = 0; this.seeked = this.seeked || seek; },
+  play() { if (!this.playing) { this.base = this.now(); this.baseAt = performance.now(); this.playing = true; } },
+  pause() { if (this.playing) { this.base = this.now(); this.playing = false; } },
+  sync(ms, playing, rtt) {
+    const est = ms + (playing ? rtt / 2 : 0);
+    const diff = est - this.now();
+    if (playing !== this.playing || Math.abs(diff) > 900) this.set(est, playing, Math.abs(diff) > 900);
+    else this.pending = diff;
+  },
+  tick(dt) {
+    if (!this.pending) return;
+    const c = this.pending * (1 - Math.exp(-3 * dt));
+    this.base += c; this.pending -= c;
+    if (Math.abs(this.pending) < 0.5) this.pending = 0;
+  },
+  takeSeek() { const s = this.seeked; this.seeked = false; return s; },
+};
+
+/* ============================================================
+   App state + main loop
+   ============================================================ */
+const STYLE_ORDER = ['drift', 'kinetic', 'impact', 'cloud', 'crawl'];
+const camera = $('#camera');
+const styles = {
+  drift: new Drift(camera), kinetic: new Kinetic(camera), impact: new Impact(camera),
+  cloud: new Cloud(camera), crawl: new Crawl(camera),
+};
+const params = new URLSearchParams(location.search);
+const state = {
+  mode: null, track: null, song: null, lineIdx: -1, styleName: null,
+  forced: STYLE_ORDER.includes(params.get('style')) ? params.get('style') : null,
+  offset: +store.get('lb.offset', 0) || 0,
+  fx: 0, pulse: 0, energy: 0.3, interlude: false, status: '',
+  palette: DEMO_PALETTE,
+  cols: DEMO_PALETTE.bg.map((c) => [...c]),
+};
+const shake = { x: new Spring(0, SPR.shake), y: new Spring(0, SPR.shake), r: new Spring(0, SPR.shake) };
+
+function hit(strength, withShake = false) {
+  state.pulse = Math.min(1.4, state.pulse + strength);
+  if (withShake && !reduceMotion) {
+    const a = Math.random() * Math.PI * 2, m = strength * 520;
+    shake.x.kick(Math.cos(a) * m); shake.y.kick(Math.sin(a) * m); shake.r.kick((Math.random() - 0.5) * strength * 40);
+  }
+}
+
+function lineIndexAt(lines, t) {
+  let lo = 0, hi = lines.length - 1, ans = -1;
+  while (lo <= hi) { const m = (lo + hi) >> 1; if (lines[m].t <= t) { ans = m; lo = m + 1; } else hi = m - 1; }
+  return ans;
+}
+
+// Returns {p} while we're in a long instrumental gap (or the intro), null otherwise.
+function interludeAt(lines, idx, t) {
+  if (!lines.length) return null;
+  if (idx < 0) return lines[0].t > 4000 && t < lines[0].t - 300 ? { p: clamp(t / lines[0].t) } : null;
+  const cur = lines[idx], next = lines[idx + 1];
+  const from = cur.sungEnd;
+  if (next) return next.t - from > 4500 && t > from + 1200 && t < next.t - 300 ? { p: clamp((t - from) / (next.t - from)) } : null;
+  return t > from + 1800 ? { p: 0, end: true } : null;
+}
+
+function resetStyles() { for (const s of Object.values(styles)) s.reset(); state.lineIdx = -1; state.styleName = null; }
+
+let W = innerWidth, H = innerHeight;
+function onResize() { W = innerWidth; H = innerHeight; bg.resize(); fx.resize(); }
+addEventListener('resize', onResize);
+onResize();
+
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000);
+  last = now;
+  clock.tick(dt);
+  const t = clock.now() + state.offset;
+  const song = state.song;
+  const lines = song ? song.lines : [];
+  const ctx = { t, dt, now, W, H, energy: state.energy, hit };
+
+  if (clock.takeSeek()) resetStyles();
+  const idx = lineIndexAt(lines, t);
+  if (state.lineIdx !== -1 && (idx < state.lineIdx || idx > state.lineIdx + 2)) resetStyles();
+  const il = interludeAt(lines, idx, t);
+  if (il && !state.interlude) { for (const s of Object.values(styles)) s.clear(); state.interlude = true; }
+  if (!il) state.interlude = false;
+
+  if (!il && idx >= 0 && idx !== state.lineIdx) {
+    const line = lines[idx];
+    const want = state.forced || line.section.style;
+    if (want !== state.styleName && state.styleName) styles[state.styleName].clear();
+    state.styleName = want;
+    styles[want].enter(line, ctx);
+    state.lineIdx = idx;
+    updateBadges(line);
+  }
+
+  const cur = idx >= 0 ? lines[idx] : null;
+  state.energy = damp(state.energy, cur && !il ? cur.energy : 0.15, 1.5, dt);
+  for (const s of Object.values(styles)) s.frame(ctx);
+
+  // Camera shake (springs back to rest by itself).
+  shake.x.step(dt); shake.y.step(dt); shake.r.step(dt);
+  camera.style.transform = `translate3d(${shake.x.x.toFixed(2)}px,${shake.y.x.toFixed(2)}px,0) rotate(${shake.r.x.toFixed(3)}deg)`;
+
+  // Interlude dots.
+  const dots = $('#dots');
+  const showDots = il && !il.end && clock.playing;
+  dots.style.opacity = showDots ? '1' : '0';
+  if (showDots) {
+    [...dots.children].forEach((d, k) => {
+      const local = clamp(il.p * 3 - k);
+      const breath = 1 + 0.08 * Math.sin(now / 420 + k);
+      d.style.transform = `scale(${((0.7 + 0.5 * local) * breath).toFixed(3)})`;
+      d.style.opacity = (0.22 + 0.78 * local).toFixed(3);
+    });
+  }
+
+  // Geometric layer when there's nothing to read.
+  const noLyrics = state.mode && (!song || !lines.length);
+  state.fx = damp(state.fx, noLyrics || (il && il.end) ? 1 : il ? 0.35 : 0, 2, dt);
+  state.pulse = damp(state.pulse, 0, 5, dt);
+  if (noLyrics && clock.playing) state.pulse = Math.max(state.pulse, 0.3 * (0.5 + 0.5 * Math.sin(now / 500)));
+  fx.draw(state.fx, now / 1000, state.pulse, state.palette.accent.join(','));
+
+  // Palette crossfade.
+  const target = state.palette.bg;
+  state.cols.forEach((c, i) => { for (let k = 0; k < 3; k++) c[k] = damp(c[k], target[i % target.length][k], 1.4, dt); });
+  bg.draw(now / 1000, state.pulse, state.energy, state.cols);
+
+  const dur = state.track ? state.track.durationMs : song ? song.duration : 0;
+  $('#progress i').style.transform = `scaleX(${dur ? clamp(clock.now() / dur).toFixed(4) : 0})`;
+  requestAnimationFrame(frame);
+}
+
+function updateBadges(line) {
+  const song = state.song;
+  $('#styleBadge').textContent = (state.forced ? 'FORZATO · ' : 'AUTO · ') + (state.styleName || '—').toUpperCase() + (line && line.chorus ? ' · RITORNELLO' : '');
+  if (song) {
+    const v = Math.abs(song.valence) < 0.005 ? 0 : song.valence;
+    $('#moodBadge').textContent = `V ${v >= 0 ? '+' : ''}${v.toFixed(2)} · A ${song.arousal.toFixed(2)}`;
+  }
+  $('#offsetBadge').textContent = state.offset ? `OFFSET ${state.offset > 0 ? '+' : ''}${state.offset}MS` : '';
+}
+
+function setTrackInfo(title, artist, img) {
+  $('#title').textContent = title;
+  $('#artist').textContent = artist;
+  const art = $('#art');
+  if (img) { art.src = img; art.style.display = 'block'; } else art.style.display = 'none';
+}
+
+async function applyPalette(url) {
+  if (!url) { state.palette = DEMO_PALETTE; document.documentElement.style.setProperty('--accent', 'rgb(255,207,122)'); return; }
+  try {
+    state.palette = await paletteFrom(url);
+    document.documentElement.style.setProperty('--accent', `rgb(${state.palette.accent.join(',')})`);
+  } catch (e) { console.warn('palette', e); }
+}
+
+function loadSong(song, meta) {
+  state.song = song;
+  resetStyles();
+  state.interlude = false;
+  if (song && !song.lines.length) toast(song.instrumental ? 'Strumentale: niente testo, solo grafica' : 'Nessun testo sincronizzato trovato');
+  updateBadges(null);
+  if (meta) setTrackInfo(meta.title, meta.artist, meta.image);
+}
+
+/* ============================================================
+   LRCLIB (free, no key, CORS enabled)
+   ============================================================ */
+const cleanTitle = (s) => s
+  .replace(/\s*[([](feat|ft|with)\.?\s[^)\]]*[)\]]/gi, '')
+  .replace(/\s+-\s+.*\b(remaster(ed)?|version|edit|live|mono|stereo|mix)\b.*$/i, '')
+  .trim();
+
+async function findLyrics(m) {
+  const title = cleanTitle(m.title);
+  const artist = m.artist.split(',')[0].trim();
+  const d = m.durationMs ? m.durationMs / 1000 : 0;
+  if (d) {
+    const qs = new URLSearchParams({ track_name: title, artist_name: artist, duration: Math.round(d) });
+    if (m.album) qs.set('album_name', m.album);
+    try {
+      const r = await fetch('https://lrclib.net/api/get?' + qs);
+      if (r.ok) { const j = await r.json(); if (j.syncedLyrics || j.instrumental) return j; }
+    } catch (e) { console.warn('lrclib get', e); }
+  }
+  const r = await fetch('https://lrclib.net/api/search?' + new URLSearchParams({ track_name: title, artist_name: artist }));
+  if (!r.ok) throw new Error('LRCLIB ' + r.status);
+  const list = await r.json();
+  const synced = list.filter((x) => x.syncedLyrics);
+  if (!synced.length) return list.find((x) => x.instrumental) || list[0] || null;
+  if (d) synced.sort((a, b) => Math.abs(a.duration - d) - Math.abs(b.duration - d));
+  return synced[0];
+}
+
+function songFromLrclib(rec, durationMs) {
+  if (!rec) return { lines: [], duration: durationMs };
+  if (!rec.syncedLyrics) return { lines: [], duration: durationMs, instrumental: !!rec.instrumental };
+  return buildSong(parseLRC(rec.syncedLyrics), durationMs || rec.duration * 1000);
+}
+
+/* ============================================================
+   Spotify: Authorization Code + PKCE, then poll currently-playing.
+   (Implicit grant and "localhost" redirects stopped working in Nov 2025.)
+   ============================================================ */
+const SP = {
+  clientId: store.get('lb.clientId', ''),
+  redirect: location.origin + location.pathname,
+  access: null, exp: 0, refresh: store.get('lb.refresh'),
+  timer: 0, trackId: null, loadSeq: 0,
+};
+const b64url = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+const randStr = (n) => { const a = new Uint8Array(n); crypto.getRandomValues(a); return b64url(a).slice(0, n); };
+
+async function spLogin() {
+  const id = $('#clientId').value.trim();
+  if (!id) { toast('Serve il Client ID'); return; }
+  if (!crypto.subtle) { toast('Apri la pagina da http://127.0.0.1 o https'); return; }
+  SP.clientId = id; store.set('lb.clientId', id);
+  const verifier = randStr(64), st = randStr(16);
+  store.sset('lb.verifier', verifier); store.sset('lb.state', st);
+  const challenge = b64url(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier)));
+  location.href = 'https://accounts.spotify.com/authorize?' + new URLSearchParams({
+    response_type: 'code', client_id: id, redirect_uri: SP.redirect, state: st,
+    scope: 'user-read-currently-playing user-read-playback-state',
+    code_challenge_method: 'S256', code_challenge: challenge,
+  });
+}
+
+async function spToken(body) {
+  const r = await fetch('https://accounts.spotify.com/api/token', {
+    method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ client_id: SP.clientId, ...body }),
+  });
+  if (!r.ok) throw new Error('token ' + r.status);
+  const j = await r.json();
+  SP.access = j.access_token;
+  SP.exp = Date.now() + (j.expires_in - 60) * 1000;
+  if (j.refresh_token) { SP.refresh = j.refresh_token; store.set('lb.refresh', j.refresh_token); }
+}
+
+async function spCallback() {
+  const q = new URLSearchParams(location.search);
+  if (!q.has('code') && !q.has('error')) return false;
+  history.replaceState(null, '', SP.redirect);
+  if (q.get('error')) { toast('Spotify: ' + q.get('error')); return false; }
+  if (q.get('state') !== store.sget('lb.state')) { toast('State OAuth non valido, riprova'); return false; }
+  await spToken({ grant_type: 'authorization_code', code: q.get('code'), redirect_uri: SP.redirect, code_verifier: store.sget('lb.verifier') || '' });
+  return true;
+}
+
+async function spFetch(path) {
+  if (!SP.access || Date.now() > SP.exp) await spToken({ grant_type: 'refresh_token', refresh_token: SP.refresh });
+  let r = await fetch('https://api.spotify.com/v1' + path, { headers: { Authorization: 'Bearer ' + SP.access } });
+  if (r.status === 401) {
+    await spToken({ grant_type: 'refresh_token', refresh_token: SP.refresh });
+    r = await fetch('https://api.spotify.com/v1' + path, { headers: { Authorization: 'Bearer ' + SP.access } });
+  }
+  return r;
+}
+
+async function spPoll() {
+  clearTimeout(SP.timer);
+  if (state.mode !== 'spotify') return;
+  let next = 1000;
+  try {
+    const t0 = performance.now();
+    const r = await spFetch('/me/player/currently-playing');
+    const rtt = performance.now() - t0;
+    if (r.status === 204) { clock.pause(); setTrackInfo('Niente in riproduzione', 'Avvia qualcosa su Spotify', null); next = 2500; }
+    else if (r.status === 429) next = (+r.headers.get('Retry-After') || 5) * 1000;
+    else if (r.ok) {
+      const j = await r.json();
+      const it = j.item;
+      if (!it || j.currently_playing_type !== 'track') { clock.pause(); next = 2500; }
+      else {
+        if (it.id !== SP.trackId) spLoadTrack(it);
+        clock.sync(j.progress_ms || 0, !!j.is_playing, rtt);
+        const left = it.duration_ms - (j.progress_ms || 0);
+        next = j.is_playing ? Math.min(1000, Math.max(250, left + 150)) : 2000;
+      }
+    } else next = 3000;
+  } catch (e) { console.warn('poll', e); next = 4000; }
+  if (!document.hidden) SP.timer = setTimeout(spPoll, next);
+}
+
+async function spLoadTrack(it) {
+  SP.trackId = it.id;
+  const seq = ++SP.loadSeq;
+  const meta = {
+    id: it.id, title: it.name, artist: it.artists.map((a) => a.name).join(', '),
+    album: it.album && it.album.name, durationMs: it.duration_ms,
+    image: it.album && it.album.images && (it.album.images[1] || it.album.images[0] || {}).url,
+  };
+  state.track = meta;
+  loadSong(null, meta);
+  applyPalette(meta.image);
+  try {
+    const rec = await findLyrics(meta);
+    if (seq !== SP.loadSeq) return;
+    loadSong(songFromLrclib(rec, meta.durationMs), meta);
+  } catch (e) {
+    if (seq === SP.loadSeq) { loadSong({ lines: [], duration: meta.durationMs }, meta); toast('LRCLIB non raggiungibile'); }
+  }
+}
+
+function startSpotify() {
+  state.mode = 'spotify';
+  $('#panel').hidden = true;
+  $('#disconnect').hidden = false;
+  spPoll();
+}
+
+/* ============================================================
+   Demo (original placeholder lyrics, not a real song) + manual mode
+   ============================================================ */
+const DEMO_LRC = `[00:01.50]Accendo una luce dentro una stanza vuota
+[00:06.80]le parole restano sospese nell'aria
+[00:11.60]ogni sillaba scende piano come neve
+[00:16.40]e il silenzio impara di nuovo a respirare
+[00:21.00]
+[00:22.00]<00:22.00>Alza <00:22.45>il <00:22.62>volume, <00:23.40>fammi <00:23.85>vedere <00:24.40>le <00:24.55>parole <00:25.30>
+[00:25.40]corrono sul vetro, bruciano come il sole
+[00:28.80]<00:28.80>Alza <00:29.25>il <00:29.42>volume, <00:30.20>fammi <00:30.65>vedere <00:31.20>le <00:31.35>parole <00:32.10>
+[00:32.20]tutto quello che dici diventa luce
+[00:36.00]
+[00:40.50]Righe che si piegano, lettere che saltano
+[00:43.40]il ritmo spinge tutto un passo più avanti
+[00:46.30]scrivo sul buio con un pennarello bianco
+[00:49.20]e ogni frase è un'onda che non torna indietro
+[00:52.40]
+[00:53.00]<00:53.00>Alza <00:53.45>il <00:53.62>volume, <00:54.40>fammi <00:54.85>vedere <00:55.40>le <00:55.55>parole <00:56.30>
+[00:56.40]corrono sul vetro, bruciano come il sole
+[00:59.80]<00:59.80>Alza <01:00.25>il <01:00.42>volume, <01:01.20>fammi <01:01.65>vedere <01:02.20>le <01:02.35>parole <01:03.10>
+[01:03.20]tutto quello che dici diventa luce
+[01:07.00]diventa luce
+[01:10.50]`;
+
+function startDemo(atMs = 0) {
+  SP.loadSeq++;
+  state.mode = 'demo';
+  state.track = { title: 'Demo — testo di prova', artist: 'Lyric Box', durationMs: 74000 };
+  $('#panel').hidden = true;
+  applyPalette(null);
+  loadSong(buildSong(parseLRC(DEMO_LRC), 74000), { title: state.track.title, artist: state.track.artist });
+  clock.set(atMs, true);
+}
+
+async function startManual() {
+  const artist = $('#qArtist').value.trim(), title = $('#qTitle').value.trim();
+  if (!artist || !title) { toast('Scrivi artista e titolo'); return; }
+  const btn = $('#search');
+  btn.disabled = true;
+  try {
+    const rec = await findLyrics({ title, artist });
+    if (!rec || !rec.syncedLyrics) { toast('Nessun testo sincronizzato su LRCLIB'); return; }
+    SP.loadSeq++;
+    state.mode = 'manual';
+    state.track = { title: rec.trackName, artist: rec.artistName, durationMs: rec.duration * 1000 };
+    $('#panel').hidden = true;
+    applyPalette(null);
+    loadSong(songFromLrclib(rec, rec.duration * 1000), { title: rec.trackName, artist: rec.artistName });
+    clock.set(0, false);
+    toast('Pronto: premi Spazio quando parte la canzone', 3200);
+  } catch (e) { toast('Ricerca fallita: ' + e.message); }
+  finally { btn.disabled = false; }
+}
+
+/* ============================================================
+   Input
+   ============================================================ */
+addEventListener('keydown', (e) => {
+  if (e.target.tagName === 'INPUT') return;
+  const k = e.key;
+  if (k === 'Escape') { $('#panel').hidden = !$('#panel').hidden; return; }
+  if (k === ' ') {
+    e.preventDefault();
+    if (state.mode === 'spotify') { toast('Play/pausa da Spotify'); return; }
+    if (clock.playing) clock.pause(); else clock.play();
+  } else if (k === 'ArrowLeft' || k === 'ArrowRight') {
+    state.offset += (k === 'ArrowRight' ? 1 : -1) * (e.shiftKey ? 500 : 100);
+    store.set('lb.offset', String(state.offset));
+    toast(`Offset ${state.offset > 0 ? '+' : ''}${state.offset} ms (→ testo prima)`);
+    updateBadges(state.song && state.song.lines[state.lineIdx]);
+  } else if ((k === '[' || k === ']') && state.mode !== 'spotify') {
+    clock.set(Math.max(0, clock.now() + (k === ']' ? 5000 : -5000)), clock.playing);
+  } else if (k === 's' || k === 'S') {
+    const order = [null, ...STYLE_ORDER];
+    state.forced = order[(order.indexOf(state.forced) + 1) % order.length];
+    resetStyles();
+    toast('Stile: ' + (state.forced || 'auto'));
+  } else if (k === 'h' || k === 'H') {
+    document.body.classList.toggle('clean');
+  } else if (k === 'f' || k === 'F') {
+    if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen?.().catch(() => {});
+  }
+});
+
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && state.mode === 'spotify') spPoll();
+});
+
+$('#connect').onclick = spLogin;
+$('#disconnect').onclick = () => {
+  store.del('lb.refresh'); SP.refresh = null; SP.access = null; state.mode = null;
+  clearTimeout(SP.timer); clock.pause(); loadSong(null);
+  $('#disconnect').hidden = true; toast('Disconnesso');
+};
+$('#demo').onclick = () => startDemo();
+$('#search').onclick = startManual;
+$('#clientId').value = SP.clientId;
+$('#redirectUri').textContent = SP.redirect;
+if (location.hostname === 'localhost') {
+  const w = $('#originWarn');
+  w.hidden = false;
+  w.textContent = 'Spotify non accetta più "localhost": riapri la pagina su http://127.0.0.1' + (location.port ? ':' + location.port : '') + location.pathname;
+} else if (location.protocol === 'file:') {
+  const w = $('#originWarn');
+  w.hidden = false;
+  w.textContent = 'Da file:// il login Spotify non funziona: servi la cartella (es. npx http-server -a 127.0.0.1) e apri http://127.0.0.1:PORTA/';
+}
+
+/* ============================================================
+   Boot
+   ============================================================ */
+(async () => {
+  // Measure text only after the faces exist, or the fitted sizes are computed on a fallback font.
+  const faces = ['100px Anton', '300 40px Fraunces', 'italic 600 40px Fraunces', '600 40px Fraunces',
+    '300 40px "Inter Tight"', '500 40px "Inter Tight"', '800 40px "Inter Tight"'];
+  try { await Promise.race([Promise.all(faces.map((f) => document.fonts.load(f))), new Promise((r) => setTimeout(r, 2500))]); } catch {}
+  requestAnimationFrame((t) => { last = t; requestAnimationFrame(frame); });
+  try {
+    if (await spCallback()) { startSpotify(); return; }
+  } catch (e) { toast('Login Spotify fallito: ' + e.message); }
+  if (params.has('demo')) { startDemo((+params.get('t') || 0) * 1000); return; }
+  if (SP.refresh && SP.clientId) startSpotify();
+})();
+})();
+</script>
+</body>
+</html>
