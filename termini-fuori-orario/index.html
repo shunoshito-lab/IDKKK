@@ -144,6 +144,10 @@ html[data-ps="3"] #guide{top:calc(max(22px,5%) + 64px)}
 #cine .t{top:0}#cine .bb{bottom:0}
 #cineCap{position:absolute;left:6%;right:6%;bottom:17%;text-align:center;font-family:var(--f-mono);font-size:clamp(24px,4.4vw,40px);line-height:1.15;color:#e9fff9;text-shadow:3px 3px 0 #000;letter-spacing:.05em;opacity:0;transition:opacity .5s;text-transform:uppercase}
 #cineCap.red{color:#ff4a3a;font-size:clamp(30px,6.2vw,62px)}
+#intro{position:absolute;inset:0;z-index:8;background:#000;display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden}
+#introCv{height:min(80vh,100%);max-width:100%;aspect-ratio:4/3;image-rendering:pixelated}
+#introCap{position:absolute;left:6%;right:6%;bottom:9%;text-align:center;font-family:var(--f-mono);font-size:clamp(22px,3.8vw,36px);line-height:1.15;color:#e9fff9;text-shadow:3px 3px 0 #000;letter-spacing:.04em;opacity:0;transition:opacity .3s}
+#introSkip{position:absolute;right:16px;top:14px;color:var(--dim);font-size:16px;text-shadow:1px 1px 0 #000}
 #jumpTxt{position:absolute;left:0;right:0;bottom:9%;text-align:center;font-family:var(--f-mono);font-size:clamp(24px,4.4vw,44px);color:#ff4a3a;text-shadow:3px 3px 0 #000;letter-spacing:.08em;text-transform:uppercase}
 #objList{display:flex;flex-direction:column;gap:0}
 #objList div{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid #0e3a33;color:var(--ink)}
@@ -234,6 +238,7 @@ html[data-ps="3"] #guide{top:calc(max(22px,5%) + 64px)}
   <div id="trail" hidden><div class="bar t"></div><div class="bar bb"></div><div id="trCap"></div><div id="trFlash"></div><div id="trSkip">clic per saltare</div></div>
   <div id="jump" hidden><img id="jumpImg" alt=""><div id="jumpTxt"></div></div>
   <div id="cine" hidden><div class="bar t"></div><div class="bar bb"></div><div id="cineCap"></div></div>
+  <div id="intro" hidden><canvas id="introCv" width="320" height="240"></canvas><div id="introCap"></div><div id="introSkip">clic · esc per saltare</div></div>
   <div id="ending" class="screen pad" hidden><div class="col"><div><div class="eyebrow">Fine</div><h1>Ora è tutto<br>più chiaro?</h1><p class="tag" id="endTxt"></p></div><nav class="nav" aria-label="Fine"><button class="mb primary" id="eAgain" type="button"><i>01</i>Ricomincia</button><button class="mb" id="eCred" type="button"><i>02</i>Crediti</button></nav></div></div>
   <div id="start" class="screen pad">
     <div class="col">
@@ -1569,7 +1574,7 @@ function musicUpdate(dt,t,fear,pounce){
   MUSIC.a.playbackRate.setTargetAtTime(rate,now,.08);MUSIC.b.playbackRate.setTargetAtTime(rate*(.5+.04*f*Math.sin(t*2.3)),now,.08);
   MUSIC.lp.frequency.setTargetAtTime(2800-2100*f,now,.2);
   MUSIC.wet.gain.setTargetAtTime(Math.min(1,f*f*1.6)*.55,now,.2);MUSIC.dry.gain.setTargetAtTime(1-Math.min(.7,f*f),now,.2);
-  MUSIC.out.gain.setTargetAtTime((.5+.35*f)*OPT.mus/100,now,.3);
+  MUSIC.out.gain.setTargetAtTime((.5+.35*f)*OPT.mus/100*(INTRO.on?.35:1),now,.3);
 }
 
 /* ----------------------------------------------------------------- nextbot */
@@ -1787,7 +1792,7 @@ function crossUpdate(dt,t){
 
 
 /* ----------------------------------------------------------------- missione */
-const MAN_IMG="assets/img/mirror-figure.png";
+const MAN_IMG="assets/img/protagonist.png";
 const G={phase:0,power:false,codeOk:false,fuses:0,notes:[],items:[],t0:0,glitch:0,cine:0,cf:{},msgT:0,guide:false,gT:0,near:null,cam0:null};
 G.code=[1+((Math.random()*9)|0),(Math.random()*10)|0,(Math.random()*10)|0,(Math.random()*10)|0];
 const ORD=['prima','seconda','terza','quarta'];
@@ -2253,7 +2258,76 @@ function start(){
   if(!coarse){try{const r=canvas.requestPointerLock?.();if(r&&r.catch)r.catch(()=>{});}catch(e){}$('resume').hidden=true;}
   canvas.focus();
 }
-$('go').addEventListener('click',start);
+/* ----------------------------------------------------------------- intro allo specchio */
+/* il protagonista si guarda allo specchio e pensa: voce, sottotitoli a tempo, riflesso che si deforma */
+const INTRO_LINES=[
+ [1.4,3.69,'Zitti. Fatemi parlare, una volta sola.'],
+ [4.59,10.19,'Io parlo con chi ascolta. Gli altri dicono che lui è un diavolo. Non lo conoscono.'],
+ [11.09,18.35,'Lui è il buttafuori. Ha le chiavi di tutto. Dice che questa stazione deve diventare grande come New York.'],
+ [19.25,24.37,'Ma non sa cosa fare con quelli come me. Quelli che dormono sotto il ponte. Sotto la stazione.'],
+ [25.27,31.9,'Io lo so cosa serve. Ci sono passato. Nessuno vuole restare qui per sempre. Vogliono solo uscire.'],
+ [32.8,40.25,'Stanotte ha preso tutto. Croci, fusibili, fogli. Li ha nascosti nella stazione, uno per uno. E mi ha chiuso dentro.'],
+ [41.15,43.34,'Se non mi vedono, non sanno quanto valgo.'],
+ [44.24,49.16,'Hai capito come funziona? Devo uscire. Prima che torni.']
+];
+const INTRO={on:false,au:null,t0:0,line:-1,img:new Image()};
+INTRO.img.src=MAN_IMG;
+const introCv=$('introCv'),introG=introCv.getContext('2d');
+function introTime(){const a=INTRO.au;return a&&!a.paused&&a.currentTime>0?a.currentTime:(performance.now()-INTRO.t0)/1000;}
+function introStart(){
+  initAudio();if(AC.ctx&&AC.ctx.state==='suspended')AC.ctx.resume();
+  INTRO.on=true;INTRO.line=-1;INTRO.t0=performance.now();
+  $('start').hidden=true;$('intro').hidden=false;$('introCap').style.opacity=0;
+  const a=new Audio('assets/sfx/intro-voice.mp3');a.volume=OPT.vol/100;a.onended=introEnd;a.play().catch(()=>{});INTRO.au=a;
+  requestAnimationFrame(introDraw);
+}
+function introEnd(){
+  if(!INTRO.on)return;INTRO.on=false;
+  if(INTRO.au){INTRO.au.onended=null;INTRO.au.pause();}
+  $('intro').hidden=true;start();
+}
+function introDraw(){
+  if(!INTRO.on)return;requestAnimationFrame(introDraw);
+  const t=introTime(),W=introCv.width,H=introCv.height,g=introG;
+  if(t>51.5){introEnd();return;}
+  /* bagno del livello −1: piastrelle verdi, neon che sfarfalla */
+  const fl=Math.random()<.04?.35:1;
+  g.fillStyle=`rgb(${8*fl|0},${26*fl|0},${24*fl|0})`;g.fillRect(0,0,W,H);
+  g.fillStyle='rgba(0,0,0,.35)';for(let x=0;x<W;x+=20)g.fillRect(x,0,1,H);for(let y=0;y<H;y+=20)g.fillRect(0,y,W,1);
+  /* specchio */
+  const mx=70,my=22,mw=180,mh=196;
+  g.fillStyle='#05080a';g.fillRect(mx-6,my-6,mw+12,mh+12);
+  g.fillStyle=`rgb(${22*fl|0},${40*fl|0},${40*fl|0})`;g.fillRect(mx,my,mw,mh);
+  /* riflesso: più parla, più si sfalda */
+  const im=INTRO.img;
+  if(im.complete&&im.naturalWidth){
+    let d=.12+.55*Math.min(1,t/49);
+    const cur=INTRO_LINES.findIndex(l=>t>=l[0]&&t<l[1]);
+    if(cur>=0&&t-INTRO_LINES[cur][0]<.35)d+=.6;
+    const w=mw*.86,h=w*im.naturalHeight/im.naturalWidth,x0=mx+(mw-w)/2,y0=my+mh-h;
+    /* il riflesso arriva in ritardo: oscilla lento, indipendente dalla camera */
+    const lag=Math.sin(t*.6)*3;
+    g.save();g.beginPath();g.rect(mx,my,mw,mh);g.clip();g.globalAlpha=.9*fl;
+    for(let y=0;y<h;y+=2){
+      const wob=Math.sin(y*.07+t*2.6)*d*10+(Math.random()<d*.03?(Math.random()-.5)*50*d:0);
+      g.drawImage(im,0,y*im.naturalHeight/h,im.naturalWidth,2*im.naturalHeight/h,x0+wob+lag,y0+y,w,2);
+    }
+    g.globalAlpha=.25*d;g.globalCompositeOperation='lighter';g.drawImage(im,x0+lag+4*d,y0,w,h);
+    g.globalCompositeOperation='source-over';g.globalAlpha=1;
+    /* crepe sul vetro */
+    g.strokeStyle='rgba(220,250,245,.28)';g.lineWidth=1;g.beginPath();g.moveTo(mx+140,my);g.lineTo(mx+122,my+60);g.lineTo(mx+150,my+104);g.lineTo(mx+132,my+170);g.stroke();
+    g.restore();
+  }
+  /* grana e righe */
+  for(let k=0;k<60;k++){g.fillStyle=`rgba(200,255,240,${Math.random()*.18})`;g.fillRect(Math.random()*W,Math.random()*H,1+Math.random()*3,1);}
+  g.fillStyle='rgba(0,0,0,.2)';for(let y=0;y<H;y+=3)g.fillRect(0,y,W,1);
+  /* sottotitoli */
+  const li=INTRO_LINES.findIndex(l=>t>=l[0]&&t<l[1]+.4);
+  if(li!==INTRO.line){INTRO.line=li;const c=$('introCap');if(li<0)c.style.opacity=0;else{c.textContent=INTRO_LINES[li][2];c.style.opacity=1;}}
+}
+$('intro').addEventListener('click',introEnd);
+addEventListener('keydown',e=>{if(INTRO.on&&(e.code==='Escape'||e.code==='Space')){e.preventDefault();introEnd();}});
+$('go').addEventListener('click',introStart);
 
 /* ----------------------------------------------------------------- menu */
 const sheets=['sOpt','sCtl','sCred','sDiary'];

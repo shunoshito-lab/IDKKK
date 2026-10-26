@@ -18,7 +18,9 @@ Poi apri http://localhost:8000
 - `index.html` — gioco
 - `assets/music/track1-4.mp3` — colonna sonora
 - `assets/sfx/bot-voice.mp3` — voce del buttafuori
-- `assets/img/bot.png`, `assets/img/mirror-figure.png` — sprite
+- `assets/img/bot.png` — sprite del buttafuori
+- `assets/img/protagonist.png` — protagonista (disegnato via codice), usato nell'intro e nello specchio del finale
+- `assets/sfx/intro-voice.mp3` — monologo dell'intro: voce sintetica Piper (`it_IT-riccardo`), deformata con ffmpeg
 
 ## Modifiche rispetto alla versione originale
 
@@ -31,6 +33,10 @@ Poi apri http://localhost:8000
 - **Testo**: aggiunto `<meta charset="utf-8">`; prima le scritte uscivano come `â¿`, `Â·`.
 - **CSS**: il selettore `html[data-ps="3"] html[data-ps="3"] #keys` era scritto male e non si applicava mai. Ora i comandi spariscono in modalità camcorder come previsto dall'autore.
 - **Rimosso**: la schermata di vittoria `winGame()` (non era raggiungibile) e `window.__dbg`, che esponeva lo stato interno al giocatore.
+
+## Intro
+
+"Nuova partita" apre il protagonista allo specchio del livello −1 che pensa ad alta voce (circa 50 s, sottotitoli sincronizzati, musica abbassata). Clic, Esc o Spazio per saltare.
 
 ## Da fare
 
