@@ -18,9 +18,10 @@ Poi apri http://localhost:8000
 - `index.html` — gioco
 - `assets/music/track1-4.mp3` — colonna sonora
 - `assets/sfx/bot-voice.mp3` — voce del buttafuori
-- `assets/models/man/` — Salvino, il buttafuori: omino low-poly senza volto, occhi rossi
+- `assets/models/man.json` — Salvino, il buttafuori: omino low-poly senza volto, occhi rossi
 - `assets/img/bot-pixel.png` — immagine pixelata per jumpscare e riflesso del finale
-- `assets/models/chain/`, `oldpc/`, `phone/` — catene sulle uscite, PC accanto al quadro, telefono del protagonista
+- `assets/models/chain.json`, `oldpc.json`, `phone.json` — catene sulle uscite, PC accanto al quadro, telefono del protagonista
+  (ogni `.json` è un GLB in base64: la versione pubblicata su claude.ai serve solo certi tipi di file; licenze in `assets/models/licenses/`)
 - `assets/img/sky-city.jpg` — skybox città di notte (ridotta da 8192 a 2048 px)
 - `assets/sfx/heartbeat.mp3` (paura), `bam.mp3` (presa), `studia.mp3` (codice sbagliato, distorto); `bot-voice.mp3` è distorta
 - `assets/img/protagonist.png` — protagonista (disegnato via codice), usato nell'intro e nello specchio del finale
