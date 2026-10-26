@@ -1,0 +1,11 @@
+Model Information:
+* title:	ChainPack
+* source:	https://sketchfab.com/3d-models/chainpack-eb6db9a6085b48809dd68bd6b6d7f438
+* author:	DarkWalf88 (https://sketchfab.com/DarkWalf88)
+
+Model License:
+* license type:	CC-BY-NC-SA-4.0 (http://creativecommons.org/licenses/by-nc-sa/4.0/)
+* requirements:	Author must be credited. No commercial use. Modified versions must have the same license.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "ChainPack" (https://sketchfab.com/3d-models/chainpack-eb6db9a6085b48809dd68bd6b6d7f438) by DarkWalf88 (https://sketchfab.com/DarkWalf88) licensed under CC-BY-NC-SA-4.0 (http://creativecommons.org/licenses/by-nc-sa/4.0/)

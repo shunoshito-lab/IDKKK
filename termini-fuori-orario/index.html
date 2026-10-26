@@ -307,6 +307,8 @@ html[data-ps="3"] #guide{top:calc(max(22px,5%) + 64px)}
       <p><b>Pianta di riferimento</b><br>Piano di utilizzo di stazione, Roma Termini, Grandi Stazioni Rail, giugno 2020. Proporzioni ridotte, spazi semplificati.</p>
       <p><b>Musica</b><br>Old Home Not Yet Built (Instupendo Remix) · Key, C418 · Peace of Mind Intro e Self-Isolation Day Theme II, da No, I'm not a Human OST. Riprodotte rallentate e deformate.</p>
       <p><b>Motore</b><br>three.js, con shader scritti a mano per l'effetto PS1/PS2.</p>
+      <p><b>Modelli 3D</b> (Sketchfab, modificati)<br>"Proportional Low Poly Man" di Robin Butler · "Old PC Low Poly Set" di diopieretti3d · "Low Poly Mobile Phone" di k. · "City Rooftop Night Skybox" di Luis Vidal: CC BY 4.0. "ChainPack" di DarkWalf88: CC BY-NC-SA 4.0.</p>
+      <p><b>Voce dell'intro</b><br>Sintesi Piper (it_IT-riccardo), deformata.</p>
     </div></div></div>
   
   <div id="menu" class="overlay pad" hidden>
@@ -329,6 +331,7 @@ html[data-ps="3"] #guide{top:calc(max(22px,5%) + 64px)}
 <script type="module">
 import * as THREE from 'three';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
+import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 
 const $=id=>document.getElementById(id);
 const coarse=matchMedia('(pointer:coarse)').matches;
@@ -1224,10 +1227,10 @@ const waterMat=psMat({map:waterTex,alpha:.74,transparent:true,depthWrite:false,t
 }
 /* sky dome */
 const skyMat=new THREE.ShaderMaterial({
-  side:THREE.BackSide,depthWrite:false,fog:false,uniforms:{time:{value:0},uLevels:SH.uLevels,uDith:SH.uDith},
+  side:THREE.BackSide,depthWrite:false,fog:false,uniforms:{time:{value:0},uLevels:SH.uLevels,uDith:SH.uDith,uCity:{value:WHITE},uCityK:{value:0}},
   vertexShader:`varying vec3 vDir;void main(){vDir=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
   fragmentShader:`
-  varying vec3 vDir;uniform float time,uLevels,uDith;
+  varying vec3 vDir;uniform float time,uLevels,uDith,uCityK;uniform sampler2D uCity;
   float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
   float n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h(i),h(i+vec2(1,0)),f.x),mix(h(i+vec2(0,1)),h(i+vec2(1,1)),f.x),f.y);}
   float fbm(vec2 p){float a=.5,s=0.;for(int i=0;i<4;i++){s+=a*n(p);p*=2.03;a*=.5;}return s;}
@@ -1243,12 +1246,45 @@ const skyMat=new THREE.ShaderMaterial({
     vec3 cc=mix(vec3(.02,.04,.08),vec3(.45,.22,.14),glow);c=mix(c,cc,cl*smoothstep(.0,.12,y)*.85);
     vec2 sp=d.xz/(y+.4)*40.;float st=step(.995,h(floor(sp)))*smoothstep(.25,.6,y)*(1.-cl);c+=vec3(.6,.7,.8)*st;
     vec3 md=normalize(vec3(.55,.5,-.45));float m=dot(d,md);c+=vec3(.8,.9,1.)*(step(.9988,m)*.9+pow(max(m,0.),70.)*.25);
+    /* skybox città di notte (equirettangolare) sopra il cielo procedurale */
+    vec2 eu=vec2(atan(d.x,-d.z)/6.28318+.5,asin(clamp(y,-1.,1.))/3.14159+.5);
+    c=mix(c,texture2D(uCity,eu).rgb,uCityK);
     c=mix(c,vec3(.02,.03,.04),smoothstep(0.,-.1,y));
     c+=(d4x4(gl_FragCoord.xy)-.5)*uDith/uLevels;c=floor(clamp(c,0.,1.)*uLevels+.5)/uLevels;
     gl_FragColor=vec4(c,1.);
   }`
 });
 const sky=new THREE.Mesh(new THREE.SphereGeometry(500,24,12),skyMat);sky.renderOrder=-10;sky.frustumCulled=false;scene.add(sky);
+new THREE.TextureLoader().load('assets/img/sky-city.jpg',tx=>{tx.colorSpace=THREE.NoColorSpace;skyMat.uniforms.uCity.value=tx;skyMat.uniforms.uCityK.value=.92;});
+
+/* ------------------------------------------------------------- modelli glTF */
+/* ogni modello passa ai materiali PS1/PS2 del gioco, scalato e con la base a y=0 */
+const gltfLoader=new GLTFLoader();
+function loadModel(url,o,cb){
+  gltfLoader.load(url,g=>{
+    const root=g.scene;
+    root.traverse(n=>{if(!n.isMesh)return;const sm=n.material,map=sm.map||null;if(map)map.colorSpace=THREE.NoColorSpace;
+      const col=o.color||(sm.color?[sm.color.r,sm.color.g,sm.color.b]:[1,1,1]);
+      n.material=(o.glow&&o.glow[sm.name])?psMat({unlit:true,color:o.glow[sm.name]}):psMat({map:map||WHITE,color:col,spec:o.spec??.3,tm:1});});
+    if(o.rx)root.rotation.x=o.rx;
+    const box=new THREE.Box3().setFromObject(root),size=box.getSize(new THREE.Vector3());
+    root.scale.multiplyScalar(o.height?o.height/size.y:o.fit/Math.max(size.x,size.y,size.z));
+    box.setFromObject(root);root.position.x-=(box.min.x+box.max.x)/2;root.position.z-=(box.min.z+box.max.z)/2;root.position.y-=box.min.y;
+    const wrap=new THREE.Group(),turn=new THREE.Group();turn.rotation.y=o.turn||0;turn.add(root);wrap.add(turn);cb(wrap);
+  },undefined,()=>{});
+}
+/* catene sulle uscite, PC del custode accanto al quadro, il telefono del protagonista dove si inizia */
+function propsInit(){
+  const chain=(x,y,z,ry,len)=>loadModel('assets/models/chain/scene.gltf',{fit:len,spec:.8},w=>{w.position.set(x,y,z);w.rotation.y=ry;scene.add(w);});
+  for(const x of [-6,0,6]){chain(x,1.6,71.75,0,3.4);chain(x,2.3,71.72,0,3.4);}
+  for(const z of [32,35.5])chain(60.75,1.7,z,Math.PI/2,2.8);
+  for(const z of [13.5,17,20.5])chain(57.8,LOW+1.3,z,Math.PI/2,3);
+  const desk=(x,z)=>{const d=new THREE.Mesh(new THREE.BoxGeometry(1.7,.76,.75),MAT.metal);d.position.set(x,LOW+.38,z);scene.add(d);
+    colliders.push({x0:x-.85,x1:x+.85,z0:z-.375,z1:z+.375,y0:LOW,y1:LOW+.76});
+    loadModel('assets/models/oldpc/scene.gltf',{fit:.95,spec:.2,glow:{MonitorOn:[.25,.85,.7]}},w=>{w.position.set(x,LOW+.76,z);scene.add(w);});};
+  desk(3.6,32.9);desk(-20,32.9);
+  loadModel('assets/models/phone/scene.gltf',{fit:.16,rx:-Math.PI/4,spec:.6,glow:{PhoneFace_Mat:[.35,.9,.8]}},w=>{w.position.set(-13.2,.005,19.4);w.rotation.y=.5;scene.add(w);});
+}
 
 /* -------------------------------------------------------- fixtures (draw) */
 const fxMat=psMat({unlit:true,tm:1});
@@ -1311,7 +1347,11 @@ function initAudio(){
   const dry=ctx.createGain(),wet=ctx.createGain(),ws=ctx.createWaveShaper();
   {const n=2048,cv=new Float32Array(n);for(let i=0;i<n;i++){const x=i/(n-1)*2-1;cv[i]=Math.max(-1,Math.min(1,x*38))*.9;}ws.curve=cv;ws.oversample='2x';}
   AC.botP.connect(dry);dry.connect(bg);AC.botP.connect(ws);ws.connect(wet);wet.connect(bg);AC.botDry=dry;AC.botWet=wet;
-  fetch(BOT_SND).then(r=>r.arrayBuffer()).then(b=>ctx.decodeAudioData(b)).then(buf=>{AC.botBuf=buf;}).catch(()=>{});
+  const loadBuf=(url,key,then)=>fetch(url).then(r=>r.arrayBuffer()).then(b=>ctx.decodeAudioData(b)).then(buf=>{AC[key]=buf;then&&then(buf);}).catch(()=>{});
+  loadBuf(BOT_SND,'botBuf');loadBuf('assets/sfx/bam.mp3','bamBuf');loadBuf('assets/sfx/studia.mp3','studiaBuf');
+  /* battito: sempre in loop, il volume lo decide la paura */
+  AC.heartG=ctx.createGain();AC.heartG.gain.value=0;AC.heartG.connect(master);
+  loadBuf('assets/sfx/heartbeat.mp3','heartBuf',buf=>{const s=ctx.createBufferSource();s.buffer=buf;s.loop=true;s.connect(AC.heartG);s.start();AC.heartSrc=s;});
   AC.on=true;musicSetup();AC.master.gain.value=.9*OPT.vol/100;
   nextChime=performance.now()/1000+rr(18,40);
 }
@@ -1562,7 +1602,9 @@ function musicNext(){
     const j=(MUSIC.idx+1)%MUS.length,p=loadTrack(j);p.catch(()=>{});MUSIC.pre={i:j,p};
   }).catch(()=>{MUSIC.loading=false;setTimeout(musicNext,3000);});
 }
+function playBuf(buf,gain){if(!AC.on||!buf)return;const c=AC.ctx,s=c.createBufferSource();s.buffer=buf;const g=c.createGain();g.gain.value=gain;s.connect(g);g.connect(AC.master);s.start();}
 function musicUpdate(dt,t,fear,pounce){
+  if(AC.heartG){const now=AC.ctx.currentTime;AC.heartG.gain.setTargetAtTime(fear>.08?Math.min(1.4,fear*fear*1.8):0,now,.2);if(AC.heartSrc)AC.heartSrc.playbackRate.setTargetAtTime(.85+.55*fear,now,.3);}
   if(!MUSIC.playing||!MUSIC.a)return;
   MUSIC.fear+=(fear-MUSIC.fear)*Math.min(1,dt*1.8);const f=MUSIC.fear;
   /* tempo: lento e storto, più si avvicina più cola; all'assalto accelera */
@@ -1578,7 +1620,7 @@ function musicUpdate(dt,t,fear,pounce){
 }
 
 /* ----------------------------------------------------------------- nextbot */
-const BOT_IMG="assets/img/bot.png";
+const BOT_IMG="assets/img/bot-pixel.png";
 const BOT_SND="assets/sfx/bot-voice.mp3";
 const BOT={on:false,x:0,z:0,y:0,layer:0,vx:0,vz:0,delay:0,caught:false,caughtT:0,n:0,d:99,trav:null,flowT:0,flowKey:-1,surv:0,best:0,st:'chase',chaseT:0,stT:0,mesh:null,nextSnd:0,fear:0,warn:0};
 let BOT_V=5.5,BOT_V_FAR=6.7,BOT_FAR=38,BOT_CATCH=.95,BOT_POUNCE=8.4;
@@ -1638,14 +1680,18 @@ function computeFlow(L,i0){
 }
 function botTex(){
   const im=new Image();
-  im.onload=()=>{const tx=ctex(256,279,(g,w,h)=>{g.clearRect(0,0,w,h);g.drawImage(im,0,0,w,h);},{repeat:false,lo:3});
-    BOT.mesh.material.uniforms.uMap.value=tx;BOT.mesh.material.userData.tex=tx;setMode(mode);};
+  /* l'immagine pixelata serve solo al jumpscare e al riflesso del finale */
+  im.onload=()=>{BOT.tex=ctex(256,279,(g,w,h)=>{g.clearRect(0,0,w,h);g.drawImage(im,0,0,w,h);},{repeat:false,lo:3});};
   im.src=BOT_IMG;$('jumpImg').src=BOT_IMG;
 }
 function botInit(){
   buildNav();
-  const m=new THREE.Mesh(new THREE.PlaneGeometry(2.5,2.72),psMat({map:WHITE,unlit:true,transparent:true,side:THREE.DoubleSide,tm:2}));
-  m.frustumCulled=false;m.renderOrder=6;m.visible=false;scene.add(m);BOT.mesh=m;botTex();
+  const m=new THREE.Group();m.visible=false;scene.add(m);BOT.mesh=m;botTex();
+  /* Salvino: omino low-poly in giacca scura, senza volto, due occhi rossi */
+  loadModel('assets/models/man/scene.gltf',{height:1.95,color:[.1,.11,.15],spec:.35,turn:Math.PI},w=>{
+    m.add(w);
+    for(const sx of [-.04,.04]){const e=new THREE.Mesh(new THREE.BoxGeometry(.035,.014,.02),MAT.led);e.position.set(sx,1.78,.1);m.add(e);}
+  });
 }
 const SPAWNS=[[-55,10],[55,10],[0,-90],[-45,-60],[45,-60],[-45,-130],[45,-130],[0,66],[-30,60],[30,60],[-10,28],[35,30],[0,5]];
 function botRespawn(delay){
@@ -1663,6 +1709,7 @@ function triggerCatch(){
   BOT.caught=true;BOT.caughtT=2.3;BOT.n++;BOT.best=Math.max(BOT.best,BOT.surv);
   $('jump').hidden=false;
   if(AC.on&&AC.botBuf){const c=AC.ctx,s=c.createBufferSource();s.buffer=AC.botBuf;const g=c.createGain();g.gain.value=1.6;s.connect(g);g.connect(AC.master);s.start();}
+  playBuf(AC.bamBuf,1.3);
   $('botMsg').style.opacity=0;
 }
 let botHud='';
@@ -1730,9 +1777,9 @@ function botUpdate(dt,t){
       }
     }
   }
-  /* sprite */
-  const m=BOT.mesh;m.position.set(BOT.x,BOT.y+1.3+Math.sin(t*3.1)*.07,BOT.z);m.quaternion.copy(camera.quaternion);
-  const sc=1+Math.sin(t*9)*.015;m.scale.set(sc,sc,1);
+  /* Salvino guarda sempre il giocatore, con un tremito storto */
+  const m=BOT.mesh;m.position.set(BOT.x,BOT.y+Math.abs(Math.sin(t*7))*.05,BOT.z);
+  m.rotation.set(Math.sin(t*9)*.03,Math.atan2(P.x-BOT.x,P.z-BOT.z),Math.sin(t*5.3)*.04);
   /* audio posizionale: tace da lontano, più ti si avvicina più sale e si distorce */
   if(AC.on&&AC.botBuf){
     const p=AC.botP;if(p.positionX){p.positionX.value=BOT.x;p.positionY.value=m.position.y;p.positionZ.value=BOT.z;}else p.setPosition(BOT.x,m.position.y,BOT.z);
@@ -1879,7 +1926,7 @@ function closeKeypad(){$('sKey').hidden=true;if(keyOpen){keyOpen=false;paused=fa
 function submitCode(){
   const v=$('kpIn').value.replace(/\D/g,'');
   if(v===G.code.join('')){G.codeOk=true;closeKeypad();sndPick();flash('SERRATURA APERTA',2.6);objUpdate();questCheck();}
-  else{$('kpMsg').textContent=v.length<4?'Servono quattro cifre.':'Codice errato. La cassa fa un rumore secco.';$('kpMsg').className='bad';$('kpIn').select();if(AC.on)sndThunk();}
+  else{$('kpMsg').textContent=v.length<4?'Servono quattro cifre.':'Codice errato. La cassa fa un rumore secco.';$('kpMsg').className='bad';$('kpIn').select();if(AC.on)sndThunk();if(v.length===4)playBuf(AC.studiaBuf,1.4);}
 }
 $('kpOk').addEventListener('click',submitCode);$('kpNo').addEventListener('click',closeKeypad);$('kpX').addEventListener('click',closeKeypad);
 $('kpIn').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();submitCode();}else if(e.key==='Escape'){e.preventDefault();closeKeypad();}});
@@ -1945,7 +1992,7 @@ function startCine(){
   G.phase=2;G.cine=0;G.cf={};BOT.on=false;BOT.mesh.visible=false;G.guide=false;beads.forEach(b=>b.visible=false);
   $('guide').hidden=true;$('prompt').hidden=true;$('noteBox').hidden=true;$('obj').textContent='';$('cine').hidden=false;$('hud').hidden=true;
   G.cam0={x:camera.position.x,y:camera.position.y,z:camera.position.z,yaw:P.yaw,pitch:P.pitch};
-  botMir.material.uniforms.uMap.value=BOT.mesh.material.uniforms.uMap.value;
+  botMir.material.uniforms.uMap.value=BOT.tex||WHITE;
 }
 function cap(t,cls){const c=$('cineCap');c.style.opacity=0;setTimeout(()=>{c.innerHTML=t;c.className=cls||'';c.style.opacity=t?1:0;},260);}
 function cineUpdate(dt,t){
@@ -2237,7 +2284,7 @@ function trailUpdate(dt,t){
   if(sh.bot){
     /* esce piano da dietro l'angolo e si avvicina */
     const m=BOT.mesh;const dd=11-6*k;const px=L(0)-Math.sin(L(3))*0-Math.sin(L(3)),pz=L(2)-Math.cos(L(3));
-    m.position.set(L(0)-Math.sin(L(3))*dd,1.3,L(2)-Math.cos(L(3))*dd);m.quaternion.copy(camera.quaternion);m.visible=k>.3;
+    m.position.set(L(0)-Math.sin(L(3))*dd,0,L(2)-Math.cos(L(3))*dd);m.rotation.set(0,Math.atan2(camera.position.x-m.position.x,camera.position.z-m.position.z),0);m.visible=k>.3;
   }
 }
 $('tr').addEventListener('click',trailStart);
@@ -2249,7 +2296,7 @@ drawOff();
 teleport(-14,21,0,0);
 $('go').disabled=false;$('goT').textContent='Nuova partita';
 $('m1').onclick=()=>setMode(1);$('m2').onclick=()=>setMode(2);$('m3').onclick=()=>setMode(3);setMode(3);
-botInit();crossInit();questInit();botRespawn(12);
+propsInit();botInit();crossInit();questInit();botRespawn(12);
 function start(){
   initAudio();if(AC.ctx&&AC.ctx.state==='suspended')AC.ctx.resume();
   started=true;paused=false;$('start').hidden=true;$('hud').hidden=false;
@@ -2326,7 +2373,8 @@ function introDraw(){
   if(li!==INTRO.line){INTRO.line=li;const c=$('introCap');if(li<0)c.style.opacity=0;else{c.textContent=INTRO_LINES[li][2];c.style.opacity=1;}}
 }
 $('intro').addEventListener('click',introEnd);
-addEventListener('keydown',e=>{if(INTRO.on&&(e.code==='Escape'||e.code==='Space')){e.preventDefault();introEnd();}});
+/* stopImmediatePropagation: lo stesso Esc altrimenti arriva al gestore della pausa e la apre appena parte la partita */
+addEventListener('keydown',e=>{if(INTRO.on&&(e.code==='Escape'||e.code==='Space')){e.preventDefault();e.stopImmediatePropagation();introEnd();}});
 $('go').addEventListener('click',introStart);
 
 /* ----------------------------------------------------------------- menu */
