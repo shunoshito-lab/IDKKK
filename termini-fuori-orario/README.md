@@ -18,8 +18,7 @@ Poi apri http://localhost:8000
 - `index.html` — gioco
 - `assets/music/track1-4.mp3` — colonna sonora
 - `assets/sfx/bot-voice.mp3` — voce del buttafuori
-- `assets/models/man.json` — Salvino, il buttafuori: omino low-poly senza volto, occhi rossi
-- `assets/img/bot-pixel.png` — immagine pixelata per jumpscare e riflesso del finale
+- `assets/img/salvino.png` — Salvino, il buttafuori: sagoma piatta alla nextbot, usata anche per jumpscare e riflesso del finale
 - `assets/models/chain.json`, `oldpc.json`, `phone.json` — catene sulle uscite, PC accanto al quadro, telefono del protagonista
   (ogni `.json` è un GLB in base64: la versione pubblicata su claude.ai serve solo certi tipi di file; licenze in `assets/models/licenses/`)
 - `assets/img/sky-city.jpg` — skybox città di notte (ridotta da 8192 a 2048 px)
@@ -43,7 +42,6 @@ Poi apri http://localhost:8000
 
 Modelli da Sketchfab, modificati:
 
-- "Proportional Low Poly Man" di Robin Butler — CC BY 4.0 — https://sketchfab.com/3d-models/proportional-low-poly-man-free-download-0bfd0e2b49a348a4b64b20cc8196e3b3
 - "Old PC Low Poly Set - Pack" di diopieretti3d — CC BY 4.0 — https://sketchfab.com/3d-models/old-pc-low-poly-set-pack-7eab0a9519e74bd5b1f9f480b2ddca8b
 - "Low Poly Mobile Phone" di k. — CC BY 4.0 — https://sketchfab.com/3d-models/low-poly-mobile-phone-4ff99cf17b164e7b9790638c5d2ef4ce
 - "City Rooftop Night Skybox" di Luis Vidal — CC BY 4.0 — https://sketchfab.com/3d-models/city-rooftop-night-skybox-cce0e8aaa10f45ccb234e1aa2a3d5753

@@ -307,7 +307,7 @@ html[data-ps="3"] #guide{top:calc(max(22px,5%) + 64px)}
       <p><b>Pianta di riferimento</b><br>Piano di utilizzo di stazione, Roma Termini, Grandi Stazioni Rail, giugno 2020. Proporzioni ridotte, spazi semplificati.</p>
       <p><b>Musica</b><br>Old Home Not Yet Built (Instupendo Remix) · Key, C418 · Peace of Mind Intro e Self-Isolation Day Theme II, da No, I'm not a Human OST. Riprodotte rallentate e deformate.</p>
       <p><b>Motore</b><br>three.js, con shader scritti a mano per l'effetto PS1/PS2.</p>
-      <p><b>Modelli 3D</b> (Sketchfab, modificati)<br>"Proportional Low Poly Man" di Robin Butler · "Old PC Low Poly Set" di diopieretti3d · "Low Poly Mobile Phone" di k. · "City Rooftop Night Skybox" di Luis Vidal: CC BY 4.0. "ChainPack" di DarkWalf88: CC BY-NC-SA 4.0.</p>
+      <p><b>Modelli 3D</b> (Sketchfab, modificati)<br>"Old PC Low Poly Set" di diopieretti3d · "Low Poly Mobile Phone" di k. · "City Rooftop Night Skybox" di Luis Vidal: CC BY 4.0. "ChainPack" di DarkWalf88: CC BY-NC-SA 4.0.</p>
       <p><b>Voce dell'intro</b><br>Sintesi Piper (it_IT-riccardo), deformata.</p>
     </div></div></div>
   
@@ -1622,7 +1622,7 @@ function musicUpdate(dt,t,fear,pounce){
 }
 
 /* ----------------------------------------------------------------- nextbot */
-const BOT_IMG="assets/img/bot-pixel.png";
+const BOT_IMG="assets/img/salvino.png";
 const BOT_SND="assets/sfx/bot-voice.mp3";
 const BOT={on:false,x:0,z:0,y:0,layer:0,vx:0,vz:0,delay:0,caught:false,caughtT:0,n:0,d:99,trav:null,flowT:0,flowKey:-1,surv:0,best:0,st:'chase',chaseT:0,stT:0,mesh:null,nextSnd:0,fear:0,warn:0};
 let BOT_V=5.5,BOT_V_FAR=6.7,BOT_FAR=38,BOT_CATCH=.95,BOT_POUNCE=8.4;
@@ -1682,18 +1682,17 @@ function computeFlow(L,i0){
 }
 function botTex(){
   const im=new Image();
-  /* l'immagine pixelata serve solo al jumpscare e al riflesso del finale */
-  im.onload=()=>{BOT.tex=ctex(256,279,(g,w,h)=>{g.clearRect(0,0,w,h);g.drawImage(im,0,0,w,h);},{repeat:false,lo:3});};
+  /* la stessa immagine fa da sagoma in gioco, jumpscare e riflesso del finale */
+  im.onload=()=>{BOT.tex=ctex(256,391,(g,w,h)=>{g.clearRect(0,0,w,h);g.drawImage(im,0,0,w,h);},{repeat:false,lo:3});
+    BOT.mesh.material.uniforms.uMap.value=BOT.tex;BOT.mesh.material.userData.tex=BOT.tex;setMode(mode);};
   im.src=BOT_IMG;$('jumpImg').src=BOT_IMG;
 }
+/* Salvino: sagoma piatta alla nextbot, sempre rivolta alla camera */
+const BOT_H=2.4,BOT_W=BOT_H*367/560;
 function botInit(){
   buildNav();
-  const m=new THREE.Group();m.visible=false;scene.add(m);BOT.mesh=m;botTex();
-  /* Salvino: omino low-poly in giacca scura, senza volto, due occhi rossi */
-  loadModel('assets/models/man.json',{height:1.95,color:[.1,.11,.15],spec:.35,turn:Math.PI},w=>{
-    m.add(w);
-    for(const sx of [-.04,.04]){const e=new THREE.Mesh(new THREE.BoxGeometry(.035,.014,.02),MAT.led);e.position.set(sx,1.78,.1);m.add(e);}
-  });
+  const m=new THREE.Mesh(new THREE.PlaneGeometry(BOT_W,BOT_H),psMat({map:WHITE,unlit:true,transparent:true,side:THREE.DoubleSide,tm:2}));
+  m.frustumCulled=false;m.renderOrder=6;m.visible=false;scene.add(m);BOT.mesh=m;botTex();
 }
 const SPAWNS=[[-55,10],[55,10],[0,-90],[-45,-60],[45,-60],[-45,-130],[45,-130],[0,66],[-30,60],[30,60],[-10,28],[35,30],[0,5]];
 function botRespawn(delay){
@@ -1779,9 +1778,9 @@ function botUpdate(dt,t){
       }
     }
   }
-  /* Salvino guarda sempre il giocatore, con un tremito storto */
-  const m=BOT.mesh;m.position.set(BOT.x,BOT.y+Math.abs(Math.sin(t*7))*.05,BOT.z);
-  m.rotation.set(Math.sin(t*9)*.03,Math.atan2(P.x-BOT.x,P.z-BOT.z),Math.sin(t*5.3)*.04);
+  /* sagoma: guarda sempre la camera, rimbalza e pulsa */
+  const m=BOT.mesh;m.position.set(BOT.x,BOT.y+BOT_H/2+Math.sin(t*3.1)*.07,BOT.z);m.quaternion.copy(camera.quaternion);
+  const sc=1+Math.sin(t*9)*.015;m.scale.set(sc,sc,1);
   /* audio posizionale: tace da lontano, più ti si avvicina più sale e si distorce */
   if(AC.on&&AC.botBuf){
     const p=AC.botP;if(p.positionX){p.positionX.value=BOT.x;p.positionY.value=m.position.y;p.positionZ.value=BOT.z;}else p.setPosition(BOT.x,m.position.y,BOT.z);
@@ -1888,7 +1887,7 @@ function questInit(){
   /* lo specchio del finale: riflesso e figura alle spalle */
   manMesh=new THREE.Mesh(new THREE.PlaneGeometry(.8,.8*245/256),psMat({map:WHITE,transparent:true,unlit:true,color:[.82,.92,.9],tm:1,depthWrite:false}));
   manMesh.position.set(MIRROR.x,MIRROR.y+.02,MIRROR.z-.025);manMesh.rotation.y=Math.PI;manMesh.visible=false;manMesh.renderOrder=9;scene.add(manMesh);
-  botMir=new THREE.Mesh(new THREE.PlaneGeometry(.42,.46),psMat({map:WHITE,transparent:true,unlit:true,depthWrite:false,tm:1,color:[.62,.7,.68]}));
+  botMir=new THREE.Mesh(new THREE.PlaneGeometry(.34,.52),psMat({map:WHITE,transparent:true,unlit:true,depthWrite:false,tm:1,color:[.62,.7,.68]}));
   botMir.position.set(MIRROR.x-.27,MIRROR.y+.2,MIRROR.z-.015);botMir.rotation.y=Math.PI;botMir.visible=false;botMir.renderOrder=8;scene.add(botMir);
   const im=new Image();im.onload=()=>{const tx=ctex(256,245,(g,w,h)=>{g.clearRect(0,0,w,h);g.drawImage(im,0,0,w,h);},{repeat:false,lo:2});manMesh.material.uniforms.uMap.value=tx;manMesh.material.userData.tex=tx;setMode(mode);};im.src=MAN_IMG;
   objUpdate();
@@ -2286,7 +2285,7 @@ function trailUpdate(dt,t){
   if(sh.bot){
     /* esce piano da dietro l'angolo e si avvicina */
     const m=BOT.mesh;const dd=11-6*k;const px=L(0)-Math.sin(L(3))*0-Math.sin(L(3)),pz=L(2)-Math.cos(L(3));
-    m.position.set(L(0)-Math.sin(L(3))*dd,0,L(2)-Math.cos(L(3))*dd);m.rotation.set(0,Math.atan2(camera.position.x-m.position.x,camera.position.z-m.position.z),0);m.visible=k>.3;
+    m.position.set(L(0)-Math.sin(L(3))*dd,BOT_H/2,L(2)-Math.cos(L(3))*dd);m.quaternion.copy(camera.quaternion);m.visible=k>.3;
   }
 }
 $('tr').addEventListener('click',trailStart);
