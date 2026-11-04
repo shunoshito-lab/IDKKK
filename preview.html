@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="it" data-perf="glass">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Home</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Archivo:wght@400;500;600&display=swap">
+<style>
+/* ==========================================================================
+   HOME — launcher webOS
+   Concetto: la stanza e buia e la luce viene da dietro lo schermo. La UI e
+   la sorgente: ogni modalita ha un suo colore, lo schermo lo irradia dai
+   bordi, e quello stesso colore e cio che va alle lampadine dietro la TV.
+   Palette e tipografia sono token; tutto il resto deriva da qui.
+   ========================================================================== */
+:root{
+  color-scheme:dark;
+  /* colore */
+  --void:#06070e;          /* nero con deriva blu, non nero puro */
+  --ink:#eef1fa;
+  --ink-2:rgba(238,241,250,.66);
+  --ink-3:rgba(238,241,250,.40);
+  --pane:rgba(12,15,26,.44);
+  --pane-line:rgba(255,255,255,.13);
+  --accent:#ff5470;
+  --accent-soft:rgba(255,84,112,.38);
+  --accent-tint:rgba(255,84,112,.15);
+  /* tipografia */
+  --display:"Bricolage Grotesque","Trebuchet MS",system-ui,sans-serif;
+  --ui:"Archivo","Helvetica Neue",Helvetica,Arial,sans-serif;
+  /* unita: 1u = 1/1920 della larghezza dello stage, impostata da JS */
+  --u:calc(100vw / 1920);
+  --safe:calc(56 * var(--u));
+  --r:calc(30 * var(--u));
+}
+*{margin:0;padding:0;box-sizing:border-box}
+button{background:none;border:0;font:inherit;color:inherit;cursor:pointer;
+  -webkit-appearance:none;appearance:none}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--void)}
+body{font-family:var(--ui);color:var(--ink);-webkit-font-smoothing:antialiased}
+#stage{position:relative;width:100%;height:100%;overflow:hidden;background:var(--void)}
+
+/* ---------- sfondo ------------------------------------------------------ */
+/* Nessun filter e nessun blend: la sfocatura e dentro i gradienti, cosi i
+   livelli restano promossi sulla GPU e si anima solo transform. */
+#sky{position:absolute;inset:0;z-index:0;
+  background:radial-gradient(140% 100% at 50% -10%, #111a33 0%, #06070e 58%)}
+.orb{position:absolute;border-radius:50%;will-change:transform;
+  transform:translate3d(0,0,0)}
+.o1{width:calc(1240*var(--u));height:calc(1240*var(--u));left:-12%;top:-24%;
+  background:radial-gradient(circle at 50% 50%, var(--accent) 0%,
+    var(--accent-soft) 36%, var(--accent-tint) 58%, rgba(0,0,0,0) 77%);
+  animation:o1 30s ease-in-out infinite}
+.o2{width:calc(1120*var(--u));height:calc(1120*var(--u));right:-14%;top:4%;
+  background:radial-gradient(circle at 50% 50%, #3d7bff 0%, rgba(61,123,255,.44) 36%,
+    rgba(61,123,255,.12) 58%, rgba(0,0,0,0) 77%);
+  animation:o2 38s ease-in-out infinite}
+.o3{width:calc(1320*var(--u));height:calc(1320*var(--u));left:18%;bottom:-38%;
+  background:radial-gradient(circle at 50% 50%, #8b5cf6 0%, rgba(139,92,246,.40) 36%,
+    rgba(139,92,246,.11) 58%, rgba(0,0,0,0) 77%);
+  animation:o3 45s ease-in-out infinite}
+.o4{width:calc(980*var(--u));height:calc(980*var(--u));right:6%;bottom:-28%;
+  background:radial-gradient(circle at 50% 50%, #12d9c4 0%, rgba(18,217,196,.34) 36%,
+    rgba(18,217,196,.09) 58%, rgba(0,0,0,0) 76%);
+  animation:o4 34s ease-in-out infinite}
+@keyframes o1{0%,100%{transform:translate3d(0,0,0) scale(1)}
+  34%{transform:translate3d(17vw,11vh,0) scale(1.16)}
+  67%{transform:translate3d(5vw,23vh,0) scale(.9)}}
+@keyframes o2{0%,100%{transform:translate3d(0,0,0) scale(1.06)}
+  40%{transform:translate3d(-19vw,15vh,0) scale(.87)}
+  72%{transform:translate3d(-7vw,-9vh,0) scale(1.19)}}
+@keyframes o3{0%,100%{transform:translate3d(0,0,0) scale(.94)}
+  45%{transform:translate3d(20vw,-17vh,0) scale(1.2)}
+  76%{transform:translate3d(-11vw,-5vh,0) scale(1.02)}}
+@keyframes o4{0%,100%{transform:translate3d(0,0,0) scale(1.1)}
+  38%{transform:translate3d(-15vw,-19vh,0) scale(.89)}
+  70%{transform:translate3d(-25vw,-3vh,0) scale(1.12)}}
+
+/* nastri d'aurora: fasce lunghe, ruotate, bordi gia sfumati */
+/* La sfumatura su entrambi gli assi sta dentro il gradiente: una mask-image
+   qui costerebbe un passaggio di composizione in piu a ogni frame. */
+.ribbon{position:absolute;left:-30%;width:160%;height:calc(340*var(--u));
+  will-change:transform;opacity:.55;
+  background:
+    radial-gradient(ellipse 34% 50% at 32% 50%, var(--rc) 0%, rgba(0,0,0,0) 72%),
+    radial-gradient(ellipse 40% 50% at 64% 50%, var(--rc2) 0%, rgba(0,0,0,0) 74%)}
+.r1{top:14%;--rc:rgba(109,142,255,.55);--rc2:rgba(197,122,255,.42);
+  animation:rib1 26s ease-in-out infinite}
+.r2{top:52%;--rc:rgba(18,217,196,.34);--rc2:rgba(61,123,255,.40);
+  animation:rib2 33s ease-in-out infinite}
+@keyframes rib1{0%,100%{transform:translate3d(-6%,0,0) rotate(-9deg) scaleY(1)}
+  50%{transform:translate3d(6%,calc(40*var(--u)),0) rotate(-5deg) scaleY(1.35)}}
+@keyframes rib2{0%,100%{transform:translate3d(5%,0,0) rotate(7deg) scaleY(1.2)}
+  50%{transform:translate3d(-7%,calc(-50*var(--u)),0) rotate(11deg) scaleY(.85)}}
+
+/* polvere luminosa: due livelli, parallasse lenta */
+.dust{position:absolute;inset:-20%;will-change:transform;opacity:.5;
+  background-repeat:repeat;background-size:calc(420*var(--u)) calc(420*var(--u))}
+.d1{animation:dust1 70s linear infinite;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='420' height='420'><circle cx="136.0" cy="63.4" r="1.45" fill="%23fff" opacity="0.3"/><circle cx="225.1" cy="153.6" r="0.68" fill="%23fff" opacity="0.58"/><circle cx="15.7" cy="182.1" r="0.69" fill="%23fff" opacity="0.31"/><circle cx="178.3" cy="347.3" r="0.76" fill="%23fff" opacity="0.4"/><circle cx="263.5" cy="398.0" r="1.35" fill="%23fff" opacity="0.51"/><circle cx="410.0" cy="19.6" r="1.72" fill="%23fff" opacity="0.44"/><circle cx="60.6" cy="49.5" r="1.0" fill="%23fff" opacity="0.78"/><circle cx="75.9" cy="244.3" r="1.43" fill="%23fff" opacity="0.49"/><circle cx="230.1" cy="26.4" r="0.68" fill="%23fff" opacity="0.38"/><circle cx="285.8" cy="179.6" r="1.01" fill="%23fff" opacity="0.63"/><circle cx="190.3" cy="125.9" r="1.63" fill="%23fff" opacity="0.7"/><circle cx="102.5" cy="241.3" r="1.28" fill="%23fff" opacity="0.82"/><circle cx="306.4" cy="120.9" r="1.87" fill="%23fff" opacity="0.33"/><circle cx="175.6" cy="318.0" r="0.8" fill="%23fff" opacity="0.57"/><circle cx="16.5" cy="280.7" r="1.59" fill="%23fff" opacity="0.62"/><circle cx="367.7" cy="131.8" r="1.5" fill="%23fff" opacity="0.64"/><circle cx="243.6" cy="191.6" r="1.69" fill="%23fff" opacity="0.86"/><circle cx="199.1" cy="278.9" r="0.68" fill="%23fff" opacity="0.71"/><circle cx="271.8" cy="417.1" r="1.67" fill="%23fff" opacity="0.43"/><circle cx="162.0" cy="280.8" r="0.63" fill="%23fff" opacity="0.55"/><circle cx="70.6" cy="49.2" r="0.68" fill="%23fff" opacity="0.75"/><circle cx="54.3" cy="104.0" r="1.11" fill="%23fff" opacity="0.82"/><circle cx="33.8" cy="188.7" r="1.31" fill="%23fff" opacity="0.82"/><circle cx="344.1" cy="362.9" r="0.96" fill="%23fff" opacity="0.52"/><circle cx="150.7" cy="371.4" r="1.85" fill="%23fff" opacity="0.35"/><circle cx="74.0" cy="97.4" r="0.9" fill="%23fff" opacity="0.57"/><circle cx="247.4" cy="110.4" r="0.61" fill="%23fff" opacity="0.52"/><circle cx="155.1" cy="237.9" r="1.84" fill="%23fff" opacity="0.7"/><circle cx="216.5" cy="259.4" r="1.48" fill="%23fff" opacity="0.29"/><circle cx="377.8" cy="327.6" r="1.74" fill="%23fff" opacity="0.77"/><circle cx="164.8" cy="167.6" r="0.73" fill="%23fff" opacity="0.66"/><circle cx="26.1" cy="28.3" r="0.87" fill="%23fff" opacity="0.36"/><circle cx="142.8" cy="22.1" r="0.6" fill="%23fff" opacity="0.35"/><circle cx="42.6" cy="152.7" r="0.63" fill="%23fff" opacity="0.82"/><circle cx="257.9" cy="62.4" r="0.93" fill="%23fff" opacity="0.48"/><circle cx="152.9" cy="51.6" r="1.7" fill="%23fff" opacity="0.9"/><circle cx="195.7" cy="203.2" r="0.71" fill="%23fff" opacity="0.32"/><circle cx="143.9" cy="111.2" r="1.68" fill="%23fff" opacity="0.35"/><circle cx="9.7" cy="399.4" r="1.29" fill="%23fff" opacity="0.35"/><circle cx="228.1" cy="11.4" r="1.29" fill="%23fff" opacity="0.89"/><circle cx="362.6" cy="292.4" r="0.94" fill="%23fff" opacity="0.49"/><circle cx="70.2" cy="324.2" r="1.29" fill="%23fff" opacity="0.76"/><circle cx="138.5" cy="93.7" r="1.65" fill="%23fff" opacity="0.89"/><circle cx="358.1" cy="338.6" r="1.66" fill="%23fff" opacity="0.73"/><circle cx="95.2" cy="217.4" r="1.06" fill="%23fff" opacity="0.27"/><circle cx="11.7" cy="117.4" r="0.94" fill="%23fff" opacity="0.7"/></svg>")}
+.d2{animation:dust2 110s linear infinite;opacity:.3;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='680' height='680'><circle cx="650.4" cy="304.1" r="2.5" fill="%23fff" opacity="0.64"/><circle cx="649.4" cy="248.0" r="1.35" fill="%23fff" opacity="0.3"/><circle cx="133.8" cy="139.0" r="2.0" fill="%23fff" opacity="0.61"/><circle cx="571.5" cy="326.0" r="2.04" fill="%23fff" opacity="0.56"/><circle cx="57.6" cy="449.2" r="2.46" fill="%23fff" opacity="0.55"/><circle cx="510.1" cy="325.1" r="1.29" fill="%23fff" opacity="0.56"/><circle cx="226.1" cy="544.6" r="2.55" fill="%23fff" opacity="0.38"/><circle cx="272.9" cy="643.8" r="2.16" fill="%23fff" opacity="0.28"/><circle cx="86.4" cy="102.8" r="2.45" fill="%23fff" opacity="0.56"/><circle cx="99.4" cy="562.0" r="2.57" fill="%23fff" opacity="0.5"/><circle cx="238.3" cy="373.1" r="1.21" fill="%23fff" opacity="0.21"/><circle cx="660.2" cy="441.8" r="1.84" fill="%23fff" opacity="0.62"/><circle cx="295.0" cy="592.8" r="2.32" fill="%23fff" opacity="0.29"/><circle cx="171.2" cy="199.2" r="1.38" fill="%23fff" opacity="0.46"/><circle cx="176.4" cy="284.9" r="1.21" fill="%23fff" opacity="0.61"/><circle cx="240.6" cy="311.5" r="1.93" fill="%23fff" opacity="0.61"/><circle cx="286.0" cy="624.1" r="1.8" fill="%23fff" opacity="0.44"/><circle cx="356.0" cy="12.7" r="1.7" fill="%23fff" opacity="0.28"/><circle cx="2.7" cy="543.4" r="1.28" fill="%23fff" opacity="0.41"/><circle cx="493.1" cy="378.4" r="1.52" fill="%23fff" opacity="0.43"/><circle cx="377.7" cy="533.3" r="1.17" fill="%23fff" opacity="0.45"/><circle cx="169.0" cy="188.3" r="2.24" fill="%23fff" opacity="0.43"/><circle cx="382.0" cy="516.8" r="2.46" fill="%23fff" opacity="0.4"/><circle cx="416.5" cy="343.8" r="1.82" fill="%23fff" opacity="0.51"/><circle cx="307.6" cy="362.6" r="1.76" fill="%23fff" opacity="0.62"/><circle cx="475.5" cy="596.0" r="2.51" fill="%23fff" opacity="0.32"/></svg>");
+  background-size:calc(680*var(--u)) calc(680*var(--u))}
+@keyframes dust1{from{transform:translate3d(0,0,0)}to{transform:translate3d(calc(420*var(--u)),calc(-420*var(--u)),0)}}
+@keyframes dust2{from{transform:translate3d(0,0,0)}to{transform:translate3d(calc(-680*var(--u)),calc(340*var(--u)),0)}}
+
+/* alone ai bordi: e lo schermo che "illumina la stanza", cioe l'anteprima
+   di cio che va alle lampadine dietro la TV */
+/* L'alone e in due strati sovrapposti: si dipinge quello nascosto e poi si
+   incrociano le opacity. Transizionare box-shadow a schermo intero vorrebbe
+   dire ripitturare 2 milioni di pixel a ogni freccia premuta. */
+.spill{position:absolute;inset:0;pointer-events:none;z-index:1;opacity:0;
+  transition:opacity .6s ease;will-change:opacity}
+.spill.on{opacity:1}
+#vignette{position:absolute;inset:0;pointer-events:none;z-index:1;
+  background:radial-gradient(130% 100% at 50% 45%,rgba(0,0,0,0) 48%,rgba(0,0,0,.62) 100%)}
+
+/* ---------- impalcatura ------------------------------------------------- */
+#app{position:relative;z-index:2;height:100%;display:flex;flex-direction:column;
+  padding:var(--safe) var(--safe) calc(34*var(--u))}
+header{display:flex;align-items:flex-start;justify-content:space-between;
+  gap:calc(40*var(--u));margin-bottom:calc(30*var(--u))}
+.eyebrow{font-size:calc(19*var(--u));letter-spacing:.42em;text-transform:uppercase;
+  color:var(--ink-3);font-weight:600}
+h1{font-family:var(--display);font-size:calc(72*var(--u));font-weight:800;
+  line-height:.98;letter-spacing:-.025em;margin-top:calc(8*var(--u));
+  text-wrap:balance}
+h1 em{font-style:normal;color:var(--accent);transition:color .5s ease}
+.right{display:flex;align-items:flex-start;gap:calc(34*var(--u))}
+.wx{text-align:right;padding-top:calc(6*var(--u))}
+.wx-top{display:flex;align-items:center;justify-content:flex-end;gap:calc(10*var(--u))}
+.wx-temp{font-family:var(--display);font-size:calc(40*var(--u));font-weight:700;
+  font-variant-numeric:tabular-nums}
+.wx-desc{font-size:calc(19*var(--u));color:var(--ink-2);margin-top:calc(2*var(--u))}
+.wx svg{width:calc(30*var(--u));height:calc(30*var(--u));color:var(--ink-2)}
+.time{text-align:right;border-left:1px solid var(--pane-line);
+  padding-left:calc(34*var(--u))}
+#clock{font-family:var(--display);font-size:calc(66*var(--u));font-weight:500;
+  line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+#date{font-size:calc(20*var(--u));color:var(--ink-2);margin-top:calc(6*var(--u));
+  text-transform:capitalize}
+
+/* ---------- selettore modalita ------------------------------------------ */
+#modes{position:relative;display:inline-flex;align-self:flex-start;
+  gap:calc(4*var(--u));padding:calc(5*var(--u));border-radius:999px;
+  background:rgba(10,13,23,.5);border:1px solid var(--pane-line);
+  margin-bottom:calc(28*var(--u))}
+#thumb{position:absolute;top:calc(5*var(--u));left:0;height:calc(54*var(--u));
+  border-radius:999px;background:var(--mc);
+  box-shadow:0 0 calc(34*var(--u)) var(--mc);
+  transition:transform .32s cubic-bezier(.3,.9,.3,1),width .32s cubic-bezier(.3,.9,.3,1),
+             background .32s ease;
+  will-change:transform,width}
+.mode{position:relative;z-index:1;display:flex;align-items:center;
+  gap:calc(11*var(--u));height:calc(54*var(--u));
+  padding:0 calc(26*var(--u));border-radius:999px;
+  font-size:calc(23*var(--u));font-weight:600;color:var(--ink-3);
+  transition:color .28s ease;white-space:nowrap}
+.mode .dot{width:calc(12*var(--u));height:calc(12*var(--u));border-radius:50%;
+  background:var(--c);transition:opacity .28s ease}
+.mode.on{color:#0a0c14}
+.mode.on .dot{opacity:0}
+
+/* ---------- griglia ----------------------------------------------------- */
+#grid{flex:1;display:grid;gap:calc(22*var(--u));min-height:0}
+.tile{position:relative;overflow:hidden;border-radius:var(--r);
+  background:
+    linear-gradient(158deg,rgba(255,255,255,.14) 0%,rgba(255,255,255,.04) 38%,
+                    rgba(255,255,255,.01) 100%),
+    radial-gradient(128% 112% at 100% 0%, var(--sc-tint) 0%, rgba(0,0,0,0) 60%),
+    var(--pane);
+  border:1px solid var(--pane-line);
+  box-shadow:inset 0 calc(1.5*var(--u)) 0 rgba(255,255,255,.2),
+             inset 0 calc(-70*var(--u)) calc(90*var(--u)) calc(-56*var(--u)) rgba(0,0,0,.6),
+             0 calc(22*var(--u)) calc(52*var(--u)) calc(-20*var(--u)) rgba(0,0,0,.55);
+  display:flex;flex-direction:column;justify-content:space-between;
+  padding:calc(28*var(--u));
+  transition:transform .24s cubic-bezier(.2,.85,.25,1);
+  will-change:transform;contain:layout paint}
+.tile .sheen{position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(147deg,rgba(255,255,255,.1),rgba(255,255,255,0) 42%)}
+/* marchio grande in filigrana, solo sul tile grande */
+.tile .ghost{position:absolute;right:calc(-28*var(--u));bottom:calc(-38*var(--u));
+  width:calc(232*var(--u));height:calc(232*var(--u));opacity:.07;color:var(--sc);
+  pointer-events:none}
+.tile .ghost svg{width:100%;height:100%}
+.mark{width:calc(80*var(--u));height:calc(80*var(--u));border-radius:calc(25*var(--u));
+  display:flex;align-items:center;justify-content:center;color:#fff;
+  background:var(--sc-bg);
+  box-shadow:inset 0 calc(1.5*var(--u)) 0 rgba(255,255,255,.34),
+             0 calc(14*var(--u)) calc(30*var(--u)) calc(-14*var(--u)) var(--sc)}
+.mark svg{width:calc(40*var(--u));height:calc(40*var(--u));display:block}
+.meta{display:flex;flex-direction:column;gap:calc(4*var(--u));position:relative}
+.name{font-family:var(--display);font-size:calc(34*var(--u));font-weight:700;
+  letter-spacing:-.015em;line-height:1.05}
+.sub{font-size:calc(18*var(--u));color:var(--ink-2)}
+.tile.lg .mark{width:calc(96*var(--u));height:calc(96*var(--u))}
+.tile.lg .mark svg{width:calc(48*var(--u));height:calc(48*var(--u))}
+.tile.lg .name{font-size:calc(50*var(--u))}
+.tile.lg .sub{font-size:calc(21*var(--u))}
+/* anello di focus: disegnato una volta, si accende con la sola opacity.
+   Transizionare box-shadow qui significherebbe ripitturare il tile a ogni
+   freccia premuta, cioe input lag sulla TV. */
+.tile .ring{position:absolute;inset:0;pointer-events:none;border-radius:inherit;
+  border:calc(3*var(--u)) solid var(--accent);
+  box-shadow:0 0 calc(50*var(--u)) var(--accent-soft),
+             0 calc(28*var(--u)) calc(64*var(--u)) rgba(0,0,0,.5);
+  opacity:0;transition:opacity .22s ease;will-change:opacity}
+.tile.focus{transform:translateZ(0) scale(1.035)}
+.tile.focus .ring{opacity:1}
+.tile.go{animation:go .42s ease}
+@keyframes go{45%{transform:translateZ(0) scale(.975)}100%{transform:translateZ(0) scale(1.035)}}
+
+/* ---------- piede ------------------------------------------------------- */
+footer{display:flex;align-items:center;justify-content:space-between;
+  gap:calc(30*var(--u));margin-top:calc(24*var(--u));font-size:calc(19*var(--u));
+  color:var(--ink-3)}
+.hints{display:flex;gap:calc(24*var(--u));flex-wrap:wrap}
+.hint{display:flex;align-items:center;gap:calc(9*var(--u))}
+.hint i{width:calc(12*var(--u));height:calc(12*var(--u));border-radius:50%;background:var(--c)}
+.hint b{font-weight:500;color:var(--ink-2)}
+.hint span{opacity:.5}
+.status{display:flex;align-items:center;gap:calc(18*var(--u));white-space:nowrap}
+#lamp{display:flex;align-items:center;gap:calc(10*var(--u));
+  padding:calc(8*var(--u)) calc(16*var(--u));border-radius:999px;
+  border:1px solid var(--pane-line);background:rgba(10,13,23,.5)}
+#lampDot{width:calc(14*var(--u));height:calc(14*var(--u));border-radius:50%;
+  background:var(--accent);box-shadow:0 0 calc(18*var(--u)) var(--accent);
+  transition:background .6s ease,box-shadow .6s ease}
+#perfTag{letter-spacing:.2em;text-transform:uppercase;font-size:calc(16*var(--u));
+  color:var(--ink-3)}
+
+/* ---------- livelli di resa --------------------------------------------- */
+/* glass (default): nessuna sfocatura per frame.
+   full (opt-in): backdrop-filter vero, pesante sopra uno sfondo in movimento.
+   static (fallback): tutto fermo. */
+html[data-perf="full"] .tile{
+  -webkit-backdrop-filter:blur(calc(22*var(--u))) saturate(140%);
+  backdrop-filter:blur(calc(22*var(--u))) saturate(140%);
+  background:
+    linear-gradient(158deg,rgba(255,255,255,.13) 0%,rgba(255,255,255,.035) 38%,
+                    rgba(255,255,255,.01) 100%),
+    radial-gradient(128% 112% at 100% 0%, var(--sc-tint) 0%, rgba(0,0,0,0) 60%),
+    rgba(12,15,26,.24)}
+html[data-perf="static"] .orb,
+html[data-perf="static"] .ribbon,
+html[data-perf="static"] .dust{animation:none}
+html[data-perf="static"] .o4,html[data-perf="static"] .d2{display:none}
+html[data-perf="static"] .tile{background:
+  linear-gradient(158deg,rgba(255,255,255,.12),rgba(255,255,255,.03) 40%),
+  rgba(12,15,26,.74)}
+html[data-perf="static"] .tile .ring{box-shadow:none}
+@media (prefers-reduced-motion:reduce){
+  .orb,.ribbon,.dust{animation:none!important}
+}
+</style>
+
+
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* --- solo per l'anteprima: la TV dentro una cornice, non a schermo intero --- */
+html,body{height:auto;overflow:visible;background:#04050a}
+body{font-family:var(--ui);color:var(--ink);
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-block:clamp(16px,3.5vw,40px);
+  display:flex;flex-direction:column;align-items:center;gap:clamp(12px,2vw,20px)}
+.wrap{width:100%;max-width:1360px;display:flex;flex-direction:column;
+  gap:clamp(10px,1.6vw,16px);min-width:0}
+.bar{display:flex;align-items:baseline;justify-content:space-between;
+  gap:12px;flex-wrap:wrap}
+.bar h2{font-family:var(--display);font-size:clamp(17px,2.4vw,24px);font-weight:700;
+  letter-spacing:-.02em;color:var(--ink)}
+.bar p{font-size:clamp(12px,1.5vw,14px);color:var(--ink-3)}
+.tv{position:relative;width:100%;aspect-ratio:16/9;max-width:100%;
+  border-radius:clamp(8px,1.1vw,16px);overflow:hidden;
+  border:1px solid rgba(255,255,255,.1);
+  box-shadow:0 30px 70px -30px rgba(0,0,0,.9),0 0 0 1px rgba(255,255,255,.04)}
+.tv #stage{position:absolute;inset:0}
+.legend{display:flex;flex-wrap:wrap;gap:clamp(8px,1.4vw,14px);
+  font-size:clamp(11px,1.4vw,13px);color:var(--ink-3);min-width:0}
+.legend b{color:var(--ink-2);font-weight:500}
+.legend kbd{font-family:var(--ui);font-size:.92em;color:var(--ink-2);
+  border:1px solid var(--pane-line);border-radius:5px;padding:1px 6px;
+  background:rgba(255,255,255,.05)}
+.note{font-size:clamp(11px,1.4vw,13px);color:var(--ink-3);line-height:1.5;
+  max-width:62ch}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="bar">
+    <h2>Home</h2>
+    <p>anteprima &middot; la stessa pagina che gira sulla TV</p>
+  </div>
+  <div class="tv">
+
+<div id="stage">
+  <div id="sky">
+    <div class="orb o1"></div><div class="orb o2"></div>
+    <div class="orb o3"></div><div class="orb o4"></div>
+    <div class="ribbon r1"></div><div class="ribbon r2"></div>
+    <div class="dust d1"></div><div class="dust d2"></div>
+  </div>
+  <div class="spill" id="spillA"></div>
+  <div class="spill" id="spillB"></div>
+  <div id="vignette"></div>
+
+  <div id="app">
+    <header>
+      <div>
+        <div class="eyebrow">Home</div>
+        <h1 id="greet">Buonasera<em id="modeName"></em></h1>
+      </div>
+      <div class="right">
+        <div class="wx">
+          <div class="wx-top"><span id="wxIcon"></span><span class="wx-temp" id="wxTemp">--&deg;</span></div>
+          <div class="wx-desc" id="wxDesc">meteo</div>
+        </div>
+        <div class="time">
+          <div id="clock">--:--</div>
+          <div id="date"></div>
+        </div>
+      </div>
+    </header>
+
+    <nav id="modes"><div id="thumb"></div></nav>
+    <main id="grid"></main>
+
+    <footer>
+      <div class="hints" id="hints"></div>
+      <div class="status">
+        <div id="lamp"><span id="lampDot"></span><span id="lampName">luci</span></div>
+        <span id="perfTag">—</span>
+      </div>
+    </footer>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+/* ==========================================================================
+   CONFIG — tutto cio che vorrai cambiare sta qui.
+   ========================================================================== */
+
+/* Meteo: Open-Meteo, gratis e senza chiave. Cambia qui la tua citta. */
+var PLACE = { name:"Roma", lat:41.9028, lon:12.4964 };
+
+/* URL ancora da confermare */
+var RADIO_CARDUCCI_URL = "https://www.radiocarducci.it/";
+
+/* Marchi disegnati a mano: forme originali, non i logo dei servizi. */
+var MARKS = {
+  play:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4.5" width="20" height="15" rx="4.5"/><path d="M10.2 9.1v5.8l4.9-2.9z" fill="currentColor" stroke="none"/></svg>',
+  tv:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="13.5" rx="3"/><path d="M8 2.6l4 4.2 4-4.2"/><path d="M10.4 11.6v4.4l3.9-2.2z" fill="currentColor" stroke="none"/></svg>',
+  loop:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8.1" cy="12" r="4.3"/><circle cx="15.9" cy="12" r="4.3"/></svg>',
+  orbit:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="4.1" fill="currentColor" stroke="none"/><ellipse cx="12" cy="12" rx="10" ry="4.6" transform="rotate(-28 12 12)"/></svg>',
+  chat:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 11.3a8.3 8.3 0 0 1-9 8.3 9.2 9.2 0 0 1-3.5-.8L3.4 20.6l1.9-4.4a8.3 8.3 0 0 1 6.9-12.5 8.3 8.3 0 0 1 8.4 7.6z"/><path d="M9.3 10.4v2.6M12 9.1v5.2M14.7 10.4v2.6"/></svg>',
+  wave:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="2.3" fill="currentColor" stroke="none"/><path d="M7.9 8.3a5.4 5.4 0 0 0 0 7.4M16.1 8.3a5.4 5.4 0 0 1 0 7.4"/><path d="M5 5.2a9.8 9.8 0 0 0 0 13.6M19 5.2a9.8 9.8 0 0 1 0 13.6"/></svg>'
+};
+
+var SITES = {
+  youtube: { name:"YouTube",        sub:"video",            color:"#ff4133",
+             mark:"play",  url:"https://www.youtube.com/tv", appId:"youtube.leanback.v4" },
+  raiplay: { name:"RaiPlay",        sub:"tv italiana",      color:"#4f7cff",
+             mark:"tv",    url:"https://www.raiplay.it/" },
+  infinity:{ name:"Infinity",       sub:"film e serie",     color:"#8b5cf6",
+             mark:"loop",  url:"https://mediasetinfinity.mediaset.it/" },
+  pluto:   { name:"Pluto TV",       sub:"canali gratuiti",  color:"#ffc44d",
+             mark:"orbit", url:"https://pluto.tv/it/live-tv" },
+  twitch:  { name:"Twitch",         sub:"dirette",          color:"#9d6bff",
+             mark:"chat",  url:"https://www.twitch.tv/" },
+  radio:   { name:"Radio Carducci", sub:"radio",            color:"#12d9c4",
+             mark:"wave",  url:RADIO_CARDUCCI_URL }
+};
+
+var MODES = [
+  { id:"coppia", label:"Coppia",      key:403, color:"#ff5470",
+    tiles:["infinity","raiplay","youtube","pluto","twitch","radio"] },
+  { id:"amici",  label:"Amici",       key:404, color:"#35d07f",
+    tiles:["twitch","youtube","pluto","radio","infinity","raiplay"] },
+  { id:"free",   label:"Stress-free", key:405, color:"#ffc44d",
+    tiles:["radio","raiplay","youtube","pluto"] },
+  { id:"tutti",  label:"Tutti",       key:406, color:"#4cc9f0",
+    tiles:["youtube","raiplay","infinity","pluto","twitch","radio"] }
+];
+
+/* ==========================================================================
+   STATO
+   ========================================================================== */
+var modeIdx = 0, tileIdx = 0, tiles = [];
+var $ = function(s){ return document.querySelector(s); };
+var grid = $("#grid"), modesEl = $("#modes"), thumb = $("#thumb");
+
+function rgba(hex,a){
+  var n = parseInt(hex.slice(1),16);
+  return "rgba(" + ((n>>16)&255) + "," + ((n>>8)&255) + "," + (n&255) + "," + a + ")";
+}
+
+/* L'unita di misura segue la larghezza dello stage, non per forza la finestra:
+   cosi la stessa pagina gira a schermo intero sulla TV e dentro una cornice
+   in anteprima, senza due fogli di stile. */
+function sizeStage(){
+  var host = $("#stage");
+  document.documentElement.style.setProperty("--u", (host.clientWidth/1920)+"px");
+}
+
+/* ==========================================================================
+   RENDER
+   ========================================================================== */
+function renderModes(){
+  [].slice.call(modesEl.querySelectorAll(".mode")).forEach(function(n){ n.remove(); });
+  $("#hints").innerHTML = "";
+  MODES.forEach(function(m,i){
+    var el = document.createElement("button");
+    el.type = "button";
+    el.className = "mode" + (i===modeIdx ? " on" : "");
+    el.id = "mode-" + m.id;
+    el.style.setProperty("--c", m.color);
+    el.innerHTML = '<span class="dot"></span>' + m.label;
+    el.addEventListener("click", function(){ setMode(i); });
+    modesEl.appendChild(el);
+
+    var h = document.createElement("div");
+    h.className = "hint"; h.style.setProperty("--c", m.color);
+    h.innerHTML = "<i></i><b>" + m.label + "</b><span>" + (i+1) + "</span>";
+    $("#hints").appendChild(h);
+  });
+  moveThumb();
+}
+
+function moveThumb(){
+  var on = modesEl.querySelector(".mode.on");
+  if (!on) return;
+  thumb.style.width = on.offsetWidth + "px";
+  thumb.style.transform = "translate3d(" + on.offsetLeft + "px,0,0)";
+  thumb.style.setProperty("--mc", MODES[modeIdx].color);
+}
+
+/* Una regola che riempie sempre la griglia, senza celle vuote e senza righe
+   fantasma: colonne = meta' dei tile arrotondata per eccesso, due righe. Con
+   un numero dispari il primo tile occupa due colonne e i conti tornano lo
+   stesso. La gerarchia viene dalla riga di sopra, piu alta, non da un buco.
+     4 -> 2x2    5 -> primo largo + 4    6 -> 3x2    7 -> primo largo + 6  */
+function layoutFor(n){
+  if (n <= 3) return { cols:n, rows:"1fr", span:false, big:n };
+  var cols = Math.ceil(n/2);
+  var span = (n % 2) === 1;
+  return { cols:cols, rows:"1.22fr 1fr", span:span, big: span ? cols-1 : cols };
+}
+
+function renderGrid(){
+  var m = MODES[modeIdx];
+  var list = m.tiles.map(function(k){ return SITES[k]; }).filter(Boolean);
+  var root = document.documentElement.style;
+  root.setProperty("--accent", m.color);
+  root.setProperty("--accent-soft", rgba(m.color,.38));
+  root.setProperty("--accent-tint", rgba(m.color,.15));
+  $("#modeName").textContent = "";
+
+  var lay = layoutFor(list.length);
+  grid.style.gridTemplateColumns = "repeat(" + lay.cols + ",1fr)";
+  grid.style.gridTemplateRows = lay.rows;
+  grid.innerHTML = "";
+  tiles = list.map(function(s,i){
+    var t = document.createElement("div");
+    t.className = "tile" + (i < lay.big ? " lg" : "");
+    if (i===0 && lay.span) t.style.gridColumn = "span 2";
+    t.style.setProperty("--sc", s.color);
+    t.style.setProperty("--sc-bg", rgba(s.color,.30));
+    t.style.setProperty("--sc-tint", rgba(s.color,.16));
+    t.innerHTML =
+      (i < lay.big ? '<div class="ghost">'+MARKS[s.mark]+'</div>' : '') +
+      '<div class="sheen"></div>' +
+      '<div class="mark">' + MARKS[s.mark] + '</div>' +
+      '<div class="meta"><div class="name">' + s.name + '</div>' +
+      '<div class="sub">' + s.sub + '</div></div>' +
+      '<div class="ring"></div>';
+    t.__site = s;
+    t.addEventListener("mouseenter", function(){ tileIdx = i; paintFocus(); });
+    t.addEventListener("click", function(){ tileIdx = i; paintFocus(); launch(); });
+    grid.appendChild(t);
+    return t;
+  });
+  if (tileIdx >= tiles.length) tileIdx = tiles.length - 1;
+  paintFocus();
+}
+
+function paintFocus(){
+  tiles.forEach(function(t,i){ t.classList.toggle("focus", i===tileIdx); });
+  var s = tiles[tileIdx] && tiles[tileIdx].__site;
+  if (!s) return;
+  /* Il colore che andrebbe alle lampadine: il marchio a fuoco, temperato
+     dal colore della modalita. Lo schermo lo irradia dai bordi. */
+  spillTo(s.color);
+  $("#lampDot").style.background = s.color;
+  $("#lampDot").style.boxShadow = "0 0 calc(18*var(--u)) " + s.color;
+  $("#lampName").textContent = s.name.toLowerCase();
+}
+
+/* Dipinge lo strato spento e poi scambia: nessuna interpolazione di ombre. */
+var spillTop = false;
+function spillTo(hex){
+  var up = spillTop ? $("#spillA") : $("#spillB");
+  var dn = spillTop ? $("#spillB") : $("#spillA");
+  up.style.boxShadow = "inset 0 0 calc(300*var(--u)) calc(-50*var(--u)) " + rgba(hex,.42);
+  up.classList.add("on"); dn.classList.remove("on");
+  spillTop = !spillTop;
+}
+
+/* ==========================================================================
+   NAVIGAZIONE SPAZIALE
+   Sceglie il vicino guardando le posizioni reali, non gli indici: cosi la
+   griglia puo cambiare forma senza riscrivere la logica dei tasti.
+   ========================================================================== */
+function move(dx,dy){
+  if (tiles.length < 2) return;
+  var a = tiles[tileIdx].getBoundingClientRect();
+  var overlap = [], cone = [];
+
+  tiles.forEach(function(t,i){
+    if (i === tileIdx) return;
+    var b = t.getBoundingClientRect();
+    /* distanza fra i bordi nella direzione chiesta */
+    var gap = dx ? (dx > 0 ? b.left - a.right : a.left - b.right)
+                 : (dy > 0 ? b.top - a.bottom : a.top - b.bottom);
+    if (gap < -2) return;                       /* non e davvero in quella direzione */
+    /* si sovrappongono sull'asse trasversale? */
+    var over = dx ? Math.min(a.bottom,b.bottom) - Math.max(a.top,b.top)
+                  : Math.min(a.right,b.right)  - Math.max(a.left,b.left);
+    var ac = dx ? a.top + a.height/2 : a.left + a.width/2;
+    var bc = dx ? b.top + b.height/2 : b.left + b.width/2;
+    var drift = Math.abs(bc - ac);
+    if (over > 4) overlap.push({ i:i, score:gap*1000 + drift });
+    else          cone.push({ i:i, score:gap + drift*3 });
+  });
+
+  /* I vicini allineati vincono sempre. Il cono serve solo quando non ce ne
+     sono: dal tile grande, "su" non deve scappare di lato. */
+  var pool = overlap.length ? overlap : cone;
+  if (!pool.length) return;
+  pool.sort(function(p,q){ return p.score - q.score; });
+  tileIdx = pool[0].i;
+  paintFocus();
+}
+
+function setMode(i){
+  if (i === modeIdx) return;
+  modeIdx = i; tileIdx = 0;
+  try { localStorage.setItem("home.mode", MODES[i].id); } catch(e){}
+  modesEl.querySelectorAll(".mode").forEach(function(n,k){
+    n.classList.toggle("on", k===i);
+  });
+  moveThumb(); renderGrid();
+}
+
+/* ==========================================================================
+   LANCIO — app nativa, poi browser della TV, poi l'URL qui dentro.
+   Guardia a 2,5s perche un tile non resti mai muto.
+   ========================================================================== */
+function launch(){
+  var s = tiles[tileIdx] && tiles[tileIdx].__site;
+  if (!s || !s.url) return;
+  var t = tiles[tileIdx];
+  t.classList.remove("go"); void t.offsetWidth; t.classList.add("go");
+
+  var done = false;
+  function openWeb(){ if (done) return; done = true; location.href = s.url; }
+  var guard = setTimeout(openWeb, 2500);
+  function settled(){ clearTimeout(guard); done = true; }
+
+  var svc = (window.webOS && window.webOS.service && window.webOS.service.request)
+            ? window.webOS.service : null;
+  if (!svc){ openWeb(); return; }
+
+  function viaBrowser(){
+    try {
+      svc.request("luna://com.webos.applicationManager", {
+        method:"launch",
+        parameters:{ id:"com.webos.app.browser", params:{ target:s.url } },
+        onSuccess:settled, onFailure:openWeb
+      });
+    } catch(e){ openWeb(); }
+  }
+  try {
+    if (s.appId){
+      svc.request("luna://com.webos.applicationManager", {
+        method:"launch", parameters:{ id:s.appId, params:{} },
+        onSuccess:settled, onFailure:viaBrowser
+      });
+    } else viaBrowser();
+  } catch(e){ openWeb(); }
+}
+
+/* ==========================================================================
+   TASTI — telecomando (tasti colorati HbbTV) e tastiera
+   ========================================================================== */
+document.addEventListener("keydown", function(e){
+  var k = e.keyCode;
+  for (var i=0;i<MODES.length;i++){
+    if (k === MODES[i].key || k === 49+i){ setMode(i); e.preventDefault(); return; }
+  }
+  switch(k){
+    case 37: move(-1,0); break;
+    case 39: move(1,0);  break;
+    case 38: move(0,-1); break;
+    case 40: move(0,1);  break;
+    case 13: launch();   break;
+    case 48: cyclePerf(); break;
+    case 461: case 27: break;   /* indietro: la Home resta */
+    default: return;
+  }
+  e.preventDefault();
+}, false);
+
+/* ==========================================================================
+   OROLOGIO E SALUTO
+   ========================================================================== */
+function tick(){
+  var d = new Date(), h = d.getHours();
+  $("#clock").textContent = ("0"+h).slice(-2) + ":" + ("0"+d.getMinutes()).slice(-2);
+  try {
+    $("#date").textContent = d.toLocaleDateString("it-IT",
+      { weekday:"long", day:"numeric", month:"long" });
+  } catch(e){ $("#date").textContent = d.toDateString(); }
+  $("#greet").firstChild.nodeValue =
+    h < 5  ? "Ancora sveglio" :
+    h < 12 ? "Buongiorno"     :
+    h < 18 ? "Buon pomeriggio":
+             "Buonasera";
+}
+
+/* ==========================================================================
+   METEO — Open-Meteo: gratuito, senza chiave, senza registrazione.
+   Se la rete non risponde (o in anteprima, dove le chiamate esterne sono
+   bloccate) resta un valore d'esempio invece di un buco nel layout.
+   ========================================================================== */
+var WX = {
+  0:["sereno","sun"], 1:["poco nuvoloso","sun"], 2:["nuvole sparse","cloud"],
+  3:["coperto","cloud"], 45:["nebbia","cloud"], 48:["nebbia","cloud"],
+  51:["pioviggine","rain"], 53:["pioviggine","rain"], 55:["pioviggine","rain"],
+  61:["pioggia debole","rain"], 63:["pioggia","rain"], 65:["pioggia forte","rain"],
+  71:["neve","snow"], 73:["neve","snow"], 75:["neve forte","snow"],
+  80:["rovesci","rain"], 81:["rovesci","rain"], 82:["rovesci forti","rain"],
+  95:["temporale","storm"], 96:["temporale","storm"], 99:["temporale","storm"]
+};
+var WXI = {
+  sun:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.4v2.1M12 19.5v2.1M4.2 4.2l1.5 1.5M18.3 18.3l1.5 1.5M2.4 12h2.1M19.5 12h2.1M4.2 19.8l1.5-1.5M18.3 5.7l1.5-1.5"/></svg>',
+  cloud:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18.5h10.2a3.8 3.8 0 0 0 .3-7.6 5.6 5.6 0 0 0-10.8-1.3A4.4 4.4 0 0 0 7 18.5z"/></svg>',
+  rain:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 15.5h10.2a3.8 3.8 0 0 0 .3-7.6A5.6 5.6 0 0 0 6.7 6.6 4.4 4.4 0 0 0 7 15.5z"/><path d="M9 18.4l-.8 2.4M13 18.4l-.8 2.4M17 18.4l-.8 2.4"/></svg>',
+  snow:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3.6v16.8M5 7.5l14 9M19 7.5l-14 9"/></svg>',
+  storm:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 14.6h10.2a3.8 3.8 0 0 0 .3-7.6A5.6 5.6 0 0 0 6.7 5.7 4.4 4.4 0 0 0 7 14.6z"/><path d="M12.6 16.4l-2.2 3.3h2.9l-1.6 2.6"/></svg>'
+};
+function setWeather(temp,label,icon){
+  $("#wxTemp").innerHTML = Math.round(temp) + "&deg;";
+  $("#wxDesc").textContent = label;
+  $("#wxIcon").innerHTML = WXI[icon] || WXI.cloud;
+}
+function loadWeather(){
+  setWeather(17,"nuvole sparse","cloud");   /* valore d'esempio finche non risponde */
+  var u = "https://api.open-meteo.com/v1/forecast?latitude=" + PLACE.lat +
+          "&longitude=" + PLACE.lon + "&current=temperature_2m,weather_code&timezone=auto";
+  try {
+    fetch(u).then(function(r){ return r.json(); }).then(function(j){
+      var c = j && j.current; if (!c) return;
+      var w = WX[c.weather_code] || ["—","cloud"];
+      setWeather(c.temperature_2m, w[0], w[1]);
+    }).catch(function(){});
+  } catch(e){}
+}
+
+/* ==========================================================================
+   RESA — misura gli FPS veri e sceglie il livello da sola
+   ========================================================================== */
+var LEVELS = ["glass","full","static"];
+function setPerf(level,note){
+  document.documentElement.setAttribute("data-perf", level);
+  $("#perfTag").textContent = level + (note ? " · " + note : "");
+  try { localStorage.setItem("home.perf", level); } catch(e){}
+}
+function cyclePerf(){
+  var cur = document.documentElement.getAttribute("data-perf");
+  setPerf(LEVELS[(LEVELS.indexOf(cur)+1) % LEVELS.length], "manuale");
+}
+function measureFps(ms,cb){
+  var f = 0, t0 = 0;
+  function step(t){ if(!t0) t0 = t; f++;
+    (t-t0 < ms) ? requestAnimationFrame(step) : cb(f*1000/(t-t0)); }
+  requestAnimationFrame(step);
+}
+function autoTune(){
+  setPerf("glass","misuro");
+  measureFps(1500, function(a){
+    window.__fpsGlass = Math.round(a);
+    if (a < 26){ setPerf("static","auto"); return; }
+    if (a < 52){ setPerf("glass","auto");  return; }
+    setPerf("full","provo");
+    measureFps(1500, function(b){
+      window.__fpsFull = Math.round(b);
+      setPerf(b < 46 ? "glass" : "full", "auto");
+    });
+  });
+}
+
+/* ==========================================================================
+   AVVIO
+   ========================================================================== */
+(function init(){
+  sizeStage();
+  window.addEventListener("resize", function(){ sizeStage(); moveThumb(); });
+
+  try {
+    var saved = localStorage.getItem("home.mode");
+    if (saved) MODES.forEach(function(m,i){ if (m.id===saved) modeIdx = i; });
+  } catch(e){}
+
+  renderModes(); renderGrid(); tick(); loadWeather();
+  setInterval(tick, 15000);
+  setInterval(loadWeather, 15*60*1000);
+
+  var sp = null;
+  try { sp = localStorage.getItem("home.perf"); } catch(e){}
+  if (sp && LEVELS.indexOf(sp) > -1) setPerf(sp, null);
+  else setTimeout(autoTune, 700);
+
+  document.body.setAttribute("tabindex","-1");
+  try { window.focus(); document.body.focus(); } catch(e){}
+  /* i font cambiano le larghezze: ricolloca l'indicatore quando sono pronti */
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(moveThumb);
+})();
+</script>
+
+  </div>
+  <div class="legend">
+    <span><b>Frecce</b> <kbd>&larr;</kbd><kbd>&uarr;</kbd><kbd>&darr;</kbd><kbd>&rarr;</kbd> muovi</span>
+    <span><b>Invio</b> apri</span>
+    <span><b>1&ndash;4</b> cambia modalit&agrave;</span>
+    <span><b>0</b> livello grafico</span>
+    <span>oppure tocca i riquadri</span>
+  </div>
+  <p class="note">Sul telecomando le quattro modalit&agrave; stanno sui tasti colorati.
+  Il colore in basso a destra &egrave; quello che andrebbe alle luci dietro la TV.
+  Il meteo qui mostra un valore d&rsquo;esempio: l&rsquo;anteprima non pu&ograve; chiamare
+  servizi esterni, sulla TV arriva da Open-Meteo.</p>
+</div>
+</body>
+</html>
