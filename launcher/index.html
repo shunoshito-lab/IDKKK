@@ -353,6 +353,7 @@ var MARKS = {
   loop:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8.1" cy="12" r="4.3"/><circle cx="15.9" cy="12" r="4.3"/></svg>',
   orbit:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="4.1" fill="currentColor" stroke="none"/><ellipse cx="12" cy="12" rx="10" ry="4.6" transform="rotate(-28 12 12)"/></svg>',
   chat:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 11.3a8.3 8.3 0 0 1-9 8.3 9.2 9.2 0 0 1-3.5-.8L3.4 20.6l1.9-4.4a8.3 8.3 0 0 1 6.9-12.5 8.3 8.3 0 0 1 8.4 7.6z"/><path d="M9.3 10.4v2.6M12 9.1v5.2M14.7 10.4v2.6"/></svg>',
+  racket:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="9.6" cy="9.4" rx="5.6" ry="6.6" transform="rotate(-38 9.6 9.4)"/><path d="M13.6 14.2l5.6 6"/><path d="M6.6 6.8l6 5.2M8.4 4.9l5.1 6.4M5.1 9.1l5.7 4.3" stroke-width="1" opacity=".6"/><circle cx="18.6" cy="5.4" r="1.9" fill="currentColor" stroke="none"/></svg>',
   wave:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="2.3" fill="currentColor" stroke="none"/><path d="M7.9 8.3a5.4 5.4 0 0 0 0 7.4M16.1 8.3a5.4 5.4 0 0 1 0 7.4"/><path d="M5 5.2a9.8 9.8 0 0 0 0 13.6M19 5.2a9.8 9.8 0 0 1 0 13.6"/></svg>'
 };
 
@@ -368,18 +369,20 @@ var SITES = {
   twitch:  { name:"Twitch",         sub:"dirette",          color:"#9d6bff",
              mark:"chat",  url:"https://www.twitch.tv/" },
   radio:   { name:"Radio Carducci", sub:"radio",            color:"#12d9c4",
-             mark:"wave",  url:RADIO_CARDUCCI_URL }
+             mark:"wave",  url:RADIO_CARDUCCI_URL },
+  tennis:  { name:"Tennis",         sub:"il telefono è la racchetta", color:"#35d07f",
+             mark:"racket", url:"tennis.html", internal:true }
 };
 
 var MODES = [
   { id:"coppia", label:"Coppia",      key:403, color:"#ff5470",
-    tiles:["infinity","raiplay","youtube","pluto","twitch","radio"] },
+    tiles:["infinity","raiplay","youtube","pluto","tennis","twitch","radio"] },
   { id:"amici",  label:"Amici",       key:404, color:"#35d07f",
-    tiles:["twitch","youtube","pluto","radio","infinity","raiplay"] },
+    tiles:["tennis","twitch","youtube","pluto","radio","infinity","raiplay"] },
   { id:"free",   label:"Stress-free", key:405, color:"#ffc44d",
     tiles:["radio","raiplay","youtube","pluto"] },
   { id:"tutti",  label:"Tutti",       key:406, color:"#4cc9f0",
-    tiles:["youtube","raiplay","infinity","pluto","twitch","radio"] }
+    tiles:["youtube","raiplay","infinity","pluto","twitch","radio","tennis"] }
 ];
 
 /* ==========================================================================
@@ -603,6 +606,9 @@ function launch(){
   var t = tiles[tileIdx];
   t.classList.remove("go"); void t.offsetWidth; t.classList.add("go");
   sndGo();
+
+  /* i giochi stanno dentro il pacchetto: si aprono qui, dopo l'animazione */
+  if (s.internal){ setTimeout(function(){ location.href = s.url; }, 260); return; }
 
   var done = false;
   function openWeb(){ if (done) return; done = true; location.href = s.url; }

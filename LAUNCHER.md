@@ -9,6 +9,9 @@ niente Homebrew: solo Developer Mode ufficiale.
 launcher/
   index.html        la Home intera: nessuna dipendenza oltre ai font Google
   logos/            i tuoi file logo, opzionali
+  tennis.html       il gioco
+  lib/              PeerJS e generatore QR, entrambi MIT
+controller/         la pagina della racchetta, da servire in HTTPS
   webOSTV.js        libreria LG (Apache 2.0) — senza, window.webOS non esiste
   appinfo.json      id com.shun.launcher, 1920x1080, type web
   icon.png          80x80
@@ -52,6 +55,9 @@ Il pacchetto è già in `dist/`, verificato: struttura corretta, nessun warning.
 | 1 – 4 | le stesse modalità, da tastiera |
 | 0 | cicla i livelli grafici a mano |
 | M | suono acceso / spento |
+| *(nel Tennis)* OK | colpisci |
+| *(nel Tennis)* ◀ ▶ | mira, tenuti premuti |
+| *(nel Tennis)* Indietro | torna alla Home |
 
 Modalità, livello grafico e suono restano salvati tra un avvio e l'altro.
 Dopo 4 minuti fermi resta lo sfondo con l'ora; un tasto qualsiasi sveglia, e
@@ -148,6 +154,54 @@ un valore d'esempio invece di un buco nel layout.
 `node make-preview.js` genera `preview.html` dalla stessa sorgente: identica
 UI dentro una cornice 16:9 invece che a schermo intero. Un solo file da
 mantenere.
+
+## Tennis
+
+Tennis in stile Wii: ci si muove da soli, si sceglie solo **quando** colpire.
+In anticipo tiri incrociato, in ritardo lungolinea; il telefono aggiunge forza
+e mira. Troppa forza o troppo angolo e la palla esce. Si gioca contro la CPU,
+vince chi arriva a 3 game, con vantaggi e parità veri.
+
+**Col telefono:** sulla TV compare un QR; lo inquadri, tocchi "Attiva la
+racchetta" e fai uno swing. Telefono e TV sulla stessa Wi-Fi. Il telefono
+vibra quando colpisci, ti dice com'è venuto il colpo e mostra il punteggio.
+Sensibilità regolabile (delicato / normale / sensibile) e opzione mancino.
+
+**Col telecomando:** OK colpisce, ◀ ▶ tenuti premuti mirano. Funziona sempre,
+anche se il telefono non si collega o se ne va.
+
+### Come parlano telefono e TV
+
+La TV non può aprire un server, quindi non si trovano da soli. **PeerJS**
+(MIT) usa un servizio pubblico gratuito solo per presentarli; poi telefono e
+TV si parlano diretti in WebRTC sulla rete di casa. Il telefono batte ogni
+2 secondi: dopo 6 secondi di silenzio — anche per il blocco schermo, che
+nessun evento di chiusura segnala — la TV torna al telecomando.
+
+La pagina del telefono (`controller/`) deve stare in **HTTPS**, altrimenti il
+browser del telefono non dà accesso ai sensori. Va servita da GitHub Pages:
+`CONTROLLER_URL` in cima a `tennis.html` punta a
+`https://shunoshito-lab.github.io/IDKKK/controller/`.
+
+### Verificato
+
+Partita col telecomando, con numeri casuali a seme fisso così l'esito è
+ripetibile: punteggio con parità e vantaggi, cambio di servizio, fine
+partita, scambio di 21 colpi.
+
+Telefono↔TV, con un server PeerJS locale e due pagine vere collegate in
+WebRTC (21 controlli): QR, collegamento, tocco per i sensori, uno swing = un
+colpo, forza e direzione lette, anti-doppio, nessun colpo fantasma col
+telefono tenuto in mano, servizio dal telefono, vibrazione, punteggio sul
+telefono, mancino, ritorno al telecomando in ~6 s quando il telefono sparisce.
+Dal gesto alla TV ~155 ms, di cui ~144 sono la durata del gesto simulato.
+
+Due cose trovate dai test e corrette: un secondo swing durante l'annuncio
+faceva ripartire la partita da capo; e la TV non si accorgeva del telefono
+sparito, da cui il battito.
+
+**Non verificati:** WebRTC sul browser di webOS 25 e i sensori di un
+telefono vero. Se uno dei due manca, resta il telecomando.
 
 ## Come apre i siti
 

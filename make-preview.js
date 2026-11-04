@@ -74,3 +74,12 @@ ${body}
 
 fs.writeFileSync('preview.html', page);
 console.log('preview.html: ' + page.length + ' byte');
+
+/* Il tennis in anteprima: stessa pagina, senza PeerJS e QR. Dentro
+   l'anteprima WebRTC e' bloccato, quindi il gioco parte da solo in modalita'
+   telecomando: si gioca con Invio o cliccando. */
+const t = fs.readFileSync('launcher/tennis.html', 'utf8')
+  .replace(/<script src="lib\/qrcode\.js"><\/script>\s*/, '')
+  .replace(/<script src="lib\/peerjs\.min\.js"><\/script>\s*/, '');
+fs.writeFileSync('preview-tennis.html', t);
+console.log('preview-tennis.html: ' + t.length + ' byte');

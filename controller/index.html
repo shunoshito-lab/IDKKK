@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#06070e">
+<title>Racchetta</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Archivo:wght@400;500;600&display=swap">
+<style>
+:root{
+  color-scheme:dark;
+  --void:#06070e; --ink:#eef1fa; --ink-2:rgba(238,241,250,.66); --ink-3:rgba(238,241,250,.42);
+  --line:rgba(255,255,255,.14); --you:#35d07f; --warn:#ffc44d;
+  --display:"Bricolage Grotesque","Trebuchet MS",system-ui,sans-serif;
+  --ui:"Archivo","Helvetica Neue",Helvetica,Arial,sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:var(--void);color:var(--ink);font-family:var(--ui);
+  overscroll-behavior:none;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+body{display:flex;flex-direction:column;
+  padding:max(18px,env(safe-area-inset-top,0px)) max(18px,env(safe-area-inset-right,0px))
+          max(18px,env(safe-area-inset-bottom,0px)) max(18px,env(safe-area-inset-left,0px));
+  background:radial-gradient(120% 70% at 50% 0%,#0f2a24 0%,#06070e 62%)}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.brand{font-family:var(--display);font-weight:800;font-size:22px;letter-spacing:-.02em}
+.chip{display:flex;align-items:center;gap:8px;padding:7px 13px;border-radius:999px;
+  background:rgba(255,255,255,.06);border:1px solid var(--line);font-size:13px;color:var(--ink-2)}
+.chip i{width:9px;height:9px;border-radius:50%;background:var(--ink-3)}
+.chip.on i{background:var(--you);box-shadow:0 0 10px var(--you)}
+.chip.bad i{background:var(--warn)}
+#score{margin-top:18px;text-align:center;font-family:var(--display);font-weight:700;font-size:20px;
+  color:var(--ink-2);min-height:26px;font-variant-numeric:tabular-nums}
+#pad{flex:1;display:flex;align-items:center;justify-content:center;margin:12px 0;
+  border-radius:28px;border:1px solid var(--line);background:rgba(255,255,255,.03);position:relative;
+  overflow:hidden;cursor:pointer}
+#ring{width:min(62vw,280px);aspect-ratio:1;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;text-align:center;flex-direction:column;gap:6px;
+  background:radial-gradient(circle at 50% 40%,rgba(53,208,127,.30),rgba(53,208,127,.06) 62%,transparent 72%);
+  border:2px solid rgba(53,208,127,.55);box-shadow:0 0 60px -10px rgba(53,208,127,.55);
+  transition:transform .12s ease}
+#ring.hit{transform:scale(1.08)}
+#ring b{font-family:var(--display);font-weight:800;font-size:30px;letter-spacing:-.02em}
+#ring span{font-size:14px;color:var(--ink-2);max-width:200px;line-height:1.35}
+#meter{position:absolute;left:0;bottom:0;height:6px;width:0;background:var(--you);
+  transition:width .35s ease}
+#msg{text-align:center;font-size:14px;color:var(--ink-2);min-height:20px;line-height:1.4}
+.row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:12px}
+.seg{display:flex;border:1px solid var(--line);border-radius:999px;overflow:hidden}
+.seg button,.tog{font:inherit;font-size:13px;color:var(--ink-2);background:transparent;border:0;
+  padding:9px 14px;cursor:pointer}
+.seg button.on{background:var(--you);color:#06120c;font-weight:600}
+.tog{border:1px solid var(--line);border-radius:999px}
+.tog.on{border-color:var(--you);color:var(--you)}
+#start{font:inherit;font-family:var(--display);font-weight:800;font-size:20px;color:#06120c;
+  background:var(--you);border:0;border-radius:18px;padding:16px 22px;margin-top:6px;cursor:pointer}
+button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">Racchetta</div>
+  <div class="chip" id="chip"><i></i><span id="chipTxt">collego…</span></div>
+</header>
+<div id="score"></div>
+<div id="pad">
+  <div id="ring"><b id="ringBig">Un attimo</b><span id="ringSmall">mi collego alla TV</span></div>
+  <div id="meter"></div>
+</div>
+<div id="msg"></div>
+<button id="start" type="button" hidden>Attiva la racchetta</button>
+<div class="row">
+  <div class="seg" id="sens">
+    <button type="button" data-v="bassa">delicato</button>
+    <button type="button" data-v="media">normale</button>
+    <button type="button" data-v="alta">sensibile</button>
+  </div>
+  <button type="button" class="tog" id="lefty">mancino</button>
+</div>
+
+<script src="peerjs.min.js"></script>
+<script>
+"use strict";
+var $ = function(id){ return document.getElementById(id); };
+var Q = new URLSearchParams(location.search);
+var PEER_OPTS = Q.get("peerhost")
+  ? { host:Q.get("peerhost"), port:+Q.get("peerport"), path:"/peerjs", secure:false } : {};
+var TV = location.hash.slice(1);
+
+function store(k, v){ try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch(e){ return null; } }
+function clamp(v,a,b){ return v < a ? a : v > b ? b : v; }
+
+/* ------------------------------------------------------------------ stato */
+function chip(kind, txt){ var c = $("chip"); c.className = "chip " + (kind || ""); $("chipTxt").textContent = txt; }
+function ring(big, small){ $("ringBig").textContent = big; $("ringSmall").textContent = small || ""; }
+function msg(t){ $("msg").textContent = t || ""; }
+
+/* ----------------------------------------------------------- collegamento */
+var peer = null, conn = null, live = false;
+function connect(){
+  if (!TV){ chip("bad", "nessuna TV"); ring("Manca il codice", "riapri il link dal QR sulla TV"); return; }
+  if (typeof Peer === "undefined"){ chip("bad", "errore"); ring("Non riesco", "libreria non caricata"); return; }
+  peer = new Peer(PEER_OPTS);
+  peer.on("open", function(){
+    conn = peer.connect(TV, { serialization:"json", reliable:true });
+    conn.on("open", function(){
+      live = true; chip("on", "collegata");
+      if (needsPermission()) { $("start").hidden = false; ring("Quasi", "tocca il pulsante sotto per i sensori"); }
+      else if (!armed) { arm(); }
+    });
+    conn.on("data", onData);
+    conn.on("close", function(){ live = false; chip("bad", "persa"); ring("Collegamento perso", "riapri il codice sulla TV"); });
+  });
+  peer.on("error", function(e){
+    chip("bad", "non trovata");
+    ring("TV non trovata", "riapri il gioco sulla TV e inquadra di nuovo il codice");
+    msg(e && e.type ? "(" + e.type + ")" : "");
+  });
+}
+function send(m){ try { if (conn && conn.open) conn.send(m); } catch(e){} }
+/* battito: la TV capisce da sola se il telefono e' andato in blocco schermo */
+setInterval(function(){ if (live) send({ t:"ping" }); }, 2000);
+
+function onData(m){
+  if (!m || typeof m !== "object") return;
+  if (m.t === "hit"){
+    var q = clamp(+m.q || 0, 0, 1);
+    try { if (navigator.vibrate) navigator.vibrate(q > 0.7 ? [18, 30, 40] : 22); } catch(e){}
+    $("ring").classList.add("hit"); setTimeout(function(){ $("ring").classList.remove("hit"); }, 140);
+    msg(q > 0.75 ? "Colpo pulito" : q > 0.4 ? "Preso" : "Al limite");
+  }
+  if (m.t === "score"){ $("score").textContent = m.text + (m.why ? " · " + m.why : ""); }
+  if (m.t === "msg"){ msg(m.text); }
+}
+
+/* -------------------------------------------------------------- sensori */
+/* iPhone chiede il permesso ai sensori, e solo dopo un tocco */
+function needsPermission(){
+  return typeof DeviceMotionEvent !== "undefined" && typeof DeviceMotionEvent.requestPermission === "function" && !armed;
+}
+var armed = false, wake = null;
+function arm(){
+  armed = true; $("start").hidden = true;
+  window.addEventListener("devicemotion", onMotion);
+  ring("Swing!", "come una racchetta vera — o tocca qui");
+  try { if (navigator.wakeLock) navigator.wakeLock.request("screen").then(function(w){ wake = w; }).catch(function(){}); } catch(e){}
+}
+$("start").addEventListener("click", function(){
+  if (typeof DeviceMotionEvent !== "undefined" && typeof DeviceMotionEvent.requestPermission === "function"){
+    DeviceMotionEvent.requestPermission().then(function(r){
+      if (r === "granted") arm();
+      else { ring("Sensori negati", "tocca il cerchio per colpire"); armed = true; $("start").hidden = true; }
+    }).catch(function(){ ring("Sensori negati", "tocca il cerchio per colpire"); armed = true; $("start").hidden = true; });
+  } else arm();
+});
+document.addEventListener("visibilitychange", function(){
+  if (document.visibilityState === "visible" && armed && navigator.wakeLock && !wake)
+    try { navigator.wakeLock.request("screen").then(function(w){ wake = w; }).catch(function(){}); } catch(e){}
+});
+
+/* Riconoscere uno swing.
+   Si parte quando l'accelerazione supera la soglia, si segue il picco e si
+   spara il colpo appena il picco e' passato: aspettare la fine del gesto
+   aggiungerebbe un decimo di secondo di ritardo, e nel tennis si sente. */
+var SENS = { bassa:16, media:12.5, alta:9.5 };
+var sens = store("racchetta.sens") || "media";
+var lefty = store("racchetta.lefty") === "1";
+var thr = SENS[sens] || 12.5;
+var rising = false, peak = 0, peakX = 0, t0 = 0, lastShot = 0;
+var lp = { x:0, y:0, z:0 };
+
+function onMotion(e){
+  var x, y, z, a = e.acceleration;
+  if (a && a.x != null){ x = a.x; y = a.y; z = a.z; }
+  else {
+    var g = e.accelerationIncludingGravity; if (!g || g.x == null) return;
+    /* senza accelerazione pulita: si toglie la gravita' con un passa-basso */
+    lp.x = lp.x*0.8 + g.x*0.2; lp.y = lp.y*0.8 + g.y*0.2; lp.z = lp.z*0.8 + g.z*0.2;
+    x = g.x - lp.x; y = g.y - lp.y; z = g.z - lp.z;
+  }
+  var m = Math.sqrt(x*x + y*y + z*z), now = performance.now();
+  if (now - lastShot < 380) return;
+  if (!rising){
+    if (m > thr){ rising = true; peak = m; peakX = x; t0 = now; }
+    return;
+  }
+  if (m >= peak && now - t0 < 140){ peak = m; peakX = x; return; }
+  fire(now);
+}
+function fire(now){
+  rising = false; lastShot = now;
+  var p = clamp((peak - thr) / 18, 0, 1) * 0.85 + 0.15;
+  var d = Math.abs(peakX) < 4 ? 0 : (peakX > 0 ? 1 : -1);
+  if (lefty) d = -d;
+  shot(p, d);
+}
+function shot(p, d){
+  send({ t:"swing", p:p, d:d });
+  window.__C.sent.push({ p:p, d:d });
+  $("meter").style.width = Math.round(p*100) + "%";
+  setTimeout(function(){ $("meter").style.width = "0"; }, 450);
+}
+
+/* tocco come riserva: sensori negati, telefono senza giroscopio, o voglia */
+$("pad").addEventListener("pointerdown", function(e){
+  if (!live) return;
+  if (!armed && needsPermission()) return;
+  e.preventDefault();
+  shot(0.6, 0);
+});
+
+/* ------------------------------------------------------------ preferenze */
+function paintPrefs(){
+  [].forEach.call($("sens").children, function(b){ b.classList.toggle("on", b.dataset.v === sens); });
+  $("lefty").classList.toggle("on", lefty);
+}
+$("sens").addEventListener("click", function(e){
+  var v = e.target && e.target.dataset && e.target.dataset.v; if (!v) return;
+  sens = v; thr = SENS[v]; store("racchetta.sens", v); paintPrefs();
+});
+$("lefty").addEventListener("click", function(){ lefty = !lefty; store("racchetta.lefty", lefty ? "1" : "0"); paintPrefs(); });
+
+window.__C = { sent:[], get live(){ return live; }, get thr(){ return thr; }, onMotion:onMotion };
+paintPrefs();
+connect();
+</script>
+</body>
+</html>
