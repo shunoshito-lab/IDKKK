@@ -3,7 +3,8 @@
 
     python3 ambilight.py --source demo   --out print        # prova a secco
     python3 ambilight.py --source screen --out print
-    python3 ambilight.py --source hdmi --device 0 --out tapo --hosts 192.168.1.50
+    python3 ambilight.py --source hdmi --device 0 --out tapo --hosts 192.168.1.10
+    python3 ambilight.py --probe --hosts 192.168.1.10   # prova la striscia: rosso, verde, blu
 
 Credenziali: variabili d'ambiente TAPO_USER e TAPO_PASS (l'account TP-Link
 usato nell'app Tapo). Non si passano da riga di comando, cosi' non finiscono
@@ -110,7 +111,7 @@ class TapoOut:
             d = await Discover.discover_single(h, username=self.user, password=self.pw)
             await d.update()
             self.devs.append(d)
-            print("collegata: %s (%s)" % (d.alias, h))
+            print("collegata: %s, modello %s (%s)" % (d.alias, getattr(d, "model", "?"), h))
 
     def _light(self, d):
         mods = getattr(d, "modules", {})
@@ -127,6 +128,22 @@ class TapoOut:
     def send(self, rgb):
         self.loop.run_until_complete(self._set(rgb))
 
+    def probe(self):
+        """Rosso, verde, blu, poi rimette il colore di prima. Se la striscia
+        cambia colore, tutta la catena fino alla luce funziona."""
+        import time
+        before = []
+        for d in self.devs:
+            l = self._light(d)
+            before.append((l, getattr(l, "hsv", None)))
+        for name, rgb in (("rosso", (255, 0, 0)), ("verde", (0, 255, 0)), ("blu", (0, 0, 255))):
+            print("  " + name); self.send(rgb); time.sleep(1.2)
+        async def restore():
+            for l, hsv in before:
+                if hsv: await l.set_hsv(hsv[0], hsv[1], hsv[2])
+        self.loop.run_until_complete(restore())
+        print("fatto: se la striscia ha cambiato colore tre volte, ci siamo")
+
 
 # --------------------------------------------------------------------------
 def main():
@@ -135,10 +152,26 @@ def main():
     ap.add_argument("--source", choices=["demo", "screen", "hdmi"], default="demo")
     ap.add_argument("--device", type=int, default=0, help="indice acquisizione HDMI")
     ap.add_argument("--out", choices=["print", "tapo"], default="print")
-    ap.add_argument("--hosts", nargs="*", default=[], help="IP delle lampadine Tapo")
+    ap.add_argument("--hosts", nargs="*",
+                    default=os.environ.get("TAPO_HOSTS", "").split(),
+                    help="IP delle luci Tapo (o variabile TAPO_HOSTS)")
+    ap.add_argument("--probe", action="store_true",
+                    help="prova la striscia: rosso, verde, blu, poi ripristina")
     ap.add_argument("--hz", type=float, default=4.0, help="invii al secondo, al massimo")
     ap.add_argument("--alpha", type=float, default=0.12, help="0 lentissimo, 1 immediato")
     a = ap.parse_args()
+
+    if a.probe:
+        if not a.hosts: sys.exit("serve --hosts con l'IP della striscia")
+        try:
+            TapoOut(a.hosts).probe()
+        except SystemExit:
+            raise
+        except Exception as e:
+            sys.exit("la striscia non risponde: %s\n"
+                     "controlla IP, credenziali e, nell'app Tapo, l'autorizzazione "
+                     "ai servizi di terze parti (vedi README)" % e)
+        return
 
     frames = {"demo": src_demo, "screen": src_screen,
               "hdmi": lambda: src_hdmi(a.device)}[a.source]()

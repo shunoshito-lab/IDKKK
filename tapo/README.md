@@ -1,6 +1,42 @@
-# Ambilight per lampadine Tapo
+# Ambilight per la striscia Tapo
 
-Manda alle Tapo dietro la TV il colore dominante di quello che sta passando.
+Manda alla striscia dietro la TV il colore dominante di quello che sta passando.
+
+## La tua striscia
+
+**Tapo L900**, IP `192.168.1.10`, hardware 1.0, firmware 1.4.3.
+
+La L900 è una striscia LED **a colore unico**: tutta la striscia prende lo
+stesso colore, non ha zone. Per una luce d'atmosfera che segue la scena va
+bene, ed è il caso per cui è scritto il motore (un solo colore dominante).
+
+Python-kasa la supporta ufficialmente (L900-5 e L900-10, hardware 1.0 EU) ed
+espone esattamente le chiamate usate qui: verificato su python-kasa 0.12.0.
+Il loro elenco però è provato su un firmware più vecchio del tuo, quindi:
+
+**Primo comando da lanciare, prima di tutto il resto:**
+
+```bash
+export TAPO_USER='email account Tapo' TAPO_PASS='password'
+python3 ambilight.py --probe --hosts 192.168.1.10
+```
+
+La striscia fa rosso, verde, blu e torna com'era. Se lo fa, tutta la catena
+fino alla luce funziona. Se dice che non risponde:
+
+1. **Autorizza il controllo locale.** I firmware recenti di TP-Link lo
+   bloccano finché non lo permetti: nell'app Tapo cerca, nel profilo, la voce
+   sui servizi o la compatibilità **di terze parti** e attivala. Il nome
+   esatto cambia fra versioni dell'app.
+2. **Fissa l'IP.** Nel router Vodafone riserva `192.168.1.10` alla striscia
+   (prenotazione DHCP), altrimenti dopo un riavvio può cambiare indirizzo.
+3. Il computer che fa girare lo script deve stare sulla stessa rete.
+
+**Lascia spenta la "Transizione graduale" nell'app.** La morbidezza la fa già
+lo script; con la transizione della striscia accesa i cambi di scena
+arriverebbero in ritardo.
+
+Per non ripetere l'IP: `export TAPO_HOSTS=192.168.1.10`.
 
 ## Quello che non si può fare, e perché
 
@@ -9,8 +45,8 @@ un'API di cattura per le app di terze parti, e i contenuti protetti non sono
 leggibili neanche dove la cattura esiste. Quindi il programma deve girare da
 qualche altra parte e guardare il video *prima* che arrivi alla TV.
 
-**Le Tapo non sono una LED strip.** Si comandano via rete, una chiamata per
-volta: realisticamente 3–5 aggiornamenti al secondo, non 60. Il risultato è
+**Una striscia Tapo non è una strip da ambilight.** Si comanda via rete, una
+chiamata per volta: realisticamente 3–5 aggiornamenti al secondo, non 60. Il risultato è
 una luce d'atmosfera che segue le scene, non un ambilight che insegue ogni
 fotogramma. Chi vuole la seconda cosa compra la strip.
 
@@ -34,7 +70,7 @@ pip install python-kasa      # per --out tapo
 
 python3 ambilight.py --source demo --out print       # prova a secco, a colori
 export TAPO_USER='...' TAPO_PASS='...'               # account dell'app Tapo
-python3 ambilight.py --source hdmi --out tapo --hosts 192.168.1.50 192.168.1.51
+python3 ambilight.py --source hdmi --out tapo --hosts 192.168.1.10
 ```
 
 Le credenziali stanno nell'ambiente, non sulla riga di comando: così non
@@ -79,7 +115,11 @@ cambio scena: segue subito             deriva piccola: resta ferma
 100 fotogrammi in 1 s -> 3 invii       4K in 1,1 ms
 ```
 
-**Non verificati:** la cattura (`mss`, `opencv`) e l'invio alle lampadine
-(`python-kasa`). Qui non c'erano né uno schermo né una Tapo. Se l'API della
-tua versione di python-kasa è diversa, il punto da adattare è il solo metodo
-`TapoOut._set()`.
+Verificato anche: l'interfaccia di python-kasa 0.12.0 corrisponde a quella
+usata (`Discover.discover_single` con credenziali, modulo `Light`,
+`set_hsv`), e se la striscia non risponde `--probe` dice cosa controllare
+invece di mostrare un errore Python.
+
+**Non verificati:** la cattura (`mss`, `opencv`) e l'invio vero alla tua
+striscia. Da qui la tua rete di casa non si raggiunge: è quello che
+`--probe` serve a controllare in cinque secondi.
