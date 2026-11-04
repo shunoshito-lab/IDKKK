@@ -1,0 +1,520 @@
+<!doctype html>
+<html lang="it" data-perf="glass">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1920,height=1080,initial-scale=1,user-scalable=no">
+<title>Home</title>
+<style>
+/* ============================================================
+   TOKEN / BASE
+   ============================================================ */
+:root{
+  --accent:#ff4d6d;
+  --accent-soft:rgba(255,77,109,.35);
+  --ink:#f4f6fb;
+  --ink-dim:rgba(244,246,251,.62);
+  --glass:rgba(255,255,255,.07);
+  --accent-tint:rgba(255,77,109,.16);
+  --glass-line:rgba(255,255,255,.16);
+  --blur:22px;
+  --radius:28px;
+  /* unita di scala: tutto il layout e in "u", 1u = 1/1920 della larghezza */
+  --u:calc(100vw / 1920);
+  --safe:calc(54 * var(--u)); /* margine overscan TV */
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#05060c}
+body{
+  font-family:"LG Smart UI","Helvetica Neue",Helvetica,Arial,sans-serif;
+  color:var(--ink);
+  -webkit-font-smoothing:antialiased;
+}
+/* ============================================================
+   SFONDO — blob morfing
+   Nota perf: NIENTE filter:blur() animato. La sfocatura e "cotta"
+   dentro il radial-gradient (alpha falloff), cosi il compositor
+   anima solo transform => resta su GPU, zero repaint.
+   ============================================================ */
+#bg{position:fixed;inset:0;z-index:0;overflow:hidden;background:
+  radial-gradient(120% 90% at 20% 0%, #0d1326 0%, #05060c 60%),
+  #05060c}
+.blob{
+  position:absolute;
+  width:calc(1100 * var(--u));
+  height:calc(1100 * var(--u));
+  border-radius:50%;
+  opacity:1;
+  will-change:transform;
+  transform:translate3d(0,0,0);
+}
+.blob::after{content:"";position:absolute;inset:0;border-radius:50%}
+.b1{background:radial-gradient(circle at 50% 50%,
+      var(--accent) 0%, var(--accent-soft) 38%, rgba(255,77,109,.16) 60%, rgba(0,0,0,0) 78%);
+    left:-10%;top:-18%;animation:drift1 28s ease-in-out infinite}
+.b2{background:radial-gradient(circle at 50% 50%,
+      #3a7bff 0%, rgba(58,123,255,.46) 38%, rgba(58,123,255,.14) 60%, rgba(0,0,0,0) 78%);
+    right:-14%;top:8%;animation:drift2 34s ease-in-out infinite}
+.b3{background:radial-gradient(circle at 50% 50%,
+      #7b4bff 0%, rgba(123,75,255,.44) 38%, rgba(123,75,255,.13) 60%, rgba(0,0,0,0) 78%);
+    left:22%;bottom:-32%;animation:drift3 41s ease-in-out infinite}
+.b4{background:radial-gradient(circle at 50% 50%,
+      #00d4b8 0%, rgba(0,212,184,.38) 37%, rgba(0,212,184,.11) 59%, rgba(0,0,0,0) 77%);
+    right:10%;bottom:-26%;animation:drift4 37s ease-in-out infinite}
+@keyframes drift1{
+  0%{transform:translate3d(0,0,0) scale(1)}
+  33%{transform:translate3d(18vw,10vh,0) scale(1.18)}
+  66%{transform:translate3d(6vw,22vh,0) scale(.92)}
+  100%{transform:translate3d(0,0,0) scale(1)}}
+@keyframes drift2{
+  0%{transform:translate3d(0,0,0) scale(1.05)}
+  40%{transform:translate3d(-20vw,14vh,0) scale(.88)}
+  70%{transform:translate3d(-8vw,-8vh,0) scale(1.2)}
+  100%{transform:translate3d(0,0,0) scale(1.05)}}
+@keyframes drift3{
+  0%{transform:translate3d(0,0,0) scale(.95)}
+  45%{transform:translate3d(22vw,-16vh,0) scale(1.22)}
+  75%{transform:translate3d(-10vw,-6vh,0) scale(1)}
+  100%{transform:translate3d(0,0,0) scale(.95)}}
+@keyframes drift4{
+  0%{transform:translate3d(0,0,0) scale(1.1)}
+  38%{transform:translate3d(-16vw,-18vh,0) scale(.9)}
+  72%{transform:translate3d(-26vw,-4vh,0) scale(1.14)}
+  100%{transform:translate3d(0,0,0) scale(1.1)}}
+/* grana leggera, statica: niente costo per frame */
+#grain{position:fixed;inset:0;z-index:1;pointer-events:none;opacity:.045;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2'/></filter><rect width='120' height='120' filter='url(%23n)'/></svg>")}
+/* ============================================================
+   LAYOUT
+   ============================================================ */
+#app{position:relative;z-index:2;height:100%;display:flex;flex-direction:column;
+  padding:var(--safe) var(--safe) calc(32 * var(--u))}
+header{display:flex;align-items:flex-end;justify-content:space-between;
+  margin-bottom:calc(34 * var(--u))}
+.hello{display:flex;flex-direction:column;gap:calc(6 * var(--u))}
+.eyebrow{font-size:calc(22 * var(--u));letter-spacing:.34em;text-transform:uppercase;
+  color:var(--ink-dim);font-weight:600}
+h1{font-size:calc(66 * var(--u));font-weight:700;letter-spacing:-.02em;line-height:1}
+h1 em{font-style:normal;color:var(--accent);transition:color .35s ease}
+.clockbox{text-align:right}
+#clock{font-size:calc(58 * var(--u));font-weight:300;letter-spacing:.01em;
+  font-variant-numeric:tabular-nums}
+#date{font-size:calc(21 * var(--u));color:var(--ink-dim);text-transform:capitalize;
+  margin-top:calc(2 * var(--u))}
+/* ---- modalita ---- */
+#modes{display:flex;gap:calc(14 * var(--u));margin-bottom:calc(30 * var(--u))}
+.mode{
+  display:flex;align-items:center;gap:calc(12 * var(--u));
+  padding:calc(13 * var(--u)) calc(26 * var(--u));
+  border-radius:999px;
+  background:var(--glass);
+  border:1px solid var(--glass-line);
+  font-size:calc(24 * var(--u));font-weight:600;color:var(--ink-dim);
+  transition:background .25s ease,color .25s ease,border-color .25s ease,transform .25s ease;
+}
+.mode .dot{width:calc(15 * var(--u));height:calc(15 * var(--u));border-radius:50%;
+  background:var(--c);box-shadow:0 0 calc(16 * var(--u)) var(--c)}
+.mode.on{color:#fff;border-color:var(--c);background:var(--cbg);
+  transform:translateZ(0) scale(1.03)}
+/* ---- griglia tile ---- */
+#grid{flex:1;display:grid;grid-template-columns:repeat(3,1fr);
+  gap:calc(26 * var(--u));align-content:stretch;min-height:0}
+.tile{
+  position:relative;overflow:hidden;
+  border-radius:var(--radius);
+  /* Vetro "cotto": il pannello e traslucido, quindi i blob in movimento si
+     vedono comunque attraverso. Luce e profondita sono gradienti e ombre
+     interne dipinti UNA volta: zero costo per frame, niente readback GPU. */
+  background:
+    linear-gradient(158deg, rgba(255,255,255,.15) 0%,
+                            rgba(255,255,255,.045) 36%,
+                            rgba(255,255,255,.012) 100%),
+    radial-gradient(130% 110% at 100% 0%, var(--accent-tint) 0%, rgba(0,0,0,0) 58%),
+    rgba(13,16,27,.46);
+  border:1px solid var(--glass-line);
+  box-shadow:
+    inset 0 calc(1.5 * var(--u)) 0 rgba(255,255,255,.22),
+    inset 0 calc(-60 * var(--u)) calc(80 * var(--u)) calc(-50 * var(--u)) rgba(0,0,0,.55),
+    0 calc(20 * var(--u)) calc(50 * var(--u)) calc(-18 * var(--u)) rgba(0,0,0,.5);
+  display:flex;flex-direction:column;justify-content:space-between;
+  padding:calc(30 * var(--u));
+  transition:transform .22s cubic-bezier(.2,.8,.2,1);
+  will-change:transform;
+  contain:layout paint;
+}
+/* bagliore d'angolo, statico */
+.tile::before{content:"";position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(145deg,rgba(255,255,255,.10),rgba(255,255,255,0) 40%)}
+.tile .glyph{
+  width:calc(88 * var(--u));height:calc(88 * var(--u));
+  border-radius:calc(27 * var(--u));
+  display:flex;align-items:center;justify-content:center;
+  font-size:calc(42 * var(--u));line-height:1;color:#fff;
+  background:var(--sc-bg);
+  box-shadow:inset 0 calc(1.5 * var(--u)) 0 rgba(255,255,255,.35),
+             0 calc(12 * var(--u)) calc(28 * var(--u)) calc(-12 * var(--u)) var(--sc);
+}
+.tile .glyph svg{width:calc(44 * var(--u));height:calc(44 * var(--u));display:block}
+.tile .meta{display:flex;flex-direction:column;gap:calc(5 * var(--u))}
+.tile .name{font-size:calc(38 * var(--u));font-weight:700;letter-spacing:-.01em}
+.tile .sub{font-size:calc(20 * var(--u));color:var(--ink-dim)}
+.tile .bar{position:absolute;left:0;right:0;bottom:0;height:calc(5 * var(--u));
+  background:var(--accent);transform:scaleX(0);transform-origin:left;
+  transition:transform .28s ease}
+/* Anello di focus: disegnato una volta, si accende con la sola opacity.
+   Transizionare box-shadow qui vorrebbe dire ripitturare il tile a ogni
+   freccia premuta -> input lag sulla TV. L'opacity resta sul compositor. */
+.tile::after{content:"";position:absolute;inset:0;pointer-events:none;
+  border-radius:inherit;
+  border:calc(3 * var(--u)) solid var(--accent);
+  box-shadow:0 0 calc(44 * var(--u)) var(--accent-soft),
+             0 calc(26 * var(--u)) calc(60 * var(--u)) rgba(0,0,0,.5);
+  opacity:0;transition:opacity .2s ease;will-change:opacity}
+.tile.focus::after{opacity:1}
+.tile.focus{transform:translateZ(0) scale(1.045)}
+.tile.focus .bar{transform:scaleX(1)}
+.tile.launching{animation:pop .4s ease}
+@keyframes pop{50%{transform:translateZ(0) scale(.97)}100%{transform:translateZ(0) scale(1.045)}}
+/* ---- footer ---- */
+footer{display:flex;align-items:center;justify-content:space-between;
+  margin-top:calc(26 * var(--u));font-size:calc(20 * var(--u));color:var(--ink-dim)}
+.keys{display:flex;gap:calc(22 * var(--u))}
+.key{display:flex;align-items:center;gap:calc(9 * var(--u))}
+.key i{width:calc(13 * var(--u));height:calc(13 * var(--u));border-radius:50%;background:var(--c)}
+#perfTag{font-variant-numeric:tabular-nums;letter-spacing:.12em;text-transform:uppercase;
+  font-size:calc(18 * var(--u))}
+/* ============================================================
+   LIVELLI PERF
+   glass  (default) : vetro cotto, 4 blob, niente blur per frame
+   full   (opt-in)  : + backdrop-filter vero. Bello, ma la TV deve regere:
+                      il blur sopra uno sfondo animato si ricalcola a ogni frame.
+   static (fallback): blob fermi, pannelli piu opachi
+   ============================================================ */
+html[data-perf="full"] .tile{
+  -webkit-backdrop-filter:blur(var(--blur)) saturate(140%);
+  backdrop-filter:blur(var(--blur)) saturate(140%);
+  background:
+    linear-gradient(158deg, rgba(255,255,255,.14) 0%, rgba(255,255,255,.04) 38%,
+                            rgba(255,255,255,.01) 100%),
+    radial-gradient(130% 110% at 100% 0%, var(--accent-tint) 0%, rgba(0,0,0,0) 58%),
+    rgba(13,16,27,.26);
+}
+html[data-perf="full"] .blob{mix-blend-mode:screen}
+
+html[data-perf="static"] .blob{animation:none}
+html[data-perf="static"] .b4{display:none}
+html[data-perf="static"] #grain{display:none}
+html[data-perf="static"] .tile{background:
+    linear-gradient(158deg, rgba(255,255,255,.12),rgba(255,255,255,.03) 40%),
+    rgba(13,16,27,.72)}
+html[data-perf="static"] .tile::after{box-shadow:none}
+</style>
+</head>
+<body>
+<div id="bg">
+  <div class="blob b1"></div><div class="blob b2"></div>
+  <div class="blob b3"></div><div class="blob b4"></div>
+</div>
+<div id="grain"></div>
+
+<div id="app">
+  <header>
+    <div class="hello">
+      <div class="eyebrow">Home</div>
+      <h1>Modalità <em id="modeName">Coppia</em></h1>
+    </div>
+    <div class="clockbox">
+      <div id="clock">--:--</div>
+      <div id="date"></div>
+    </div>
+  </header>
+
+  <div id="modes"></div>
+  <div id="grid"></div>
+
+  <footer>
+    <div class="keys" id="keyHints"></div>
+    <div id="perfTag">—</div>
+  </footer>
+</div>
+
+<script src="webOSTV.js"></script>
+<script>
+"use strict";
+/* ==============================================================
+   CONFIG — tutto quello che vorrai cambiare sta qui.
+   appId: id app nativa webOS (se c'e, si apre quella: piu fluida).
+          Se manca o fallisce, si apre il browser della TV sull'url.
+   ============================================================== */
+var RADIO_CARDUCCI_URL = "https://www.radiocarducci.it/"; /* TODO: confermare URL */
+
+var SITES = {
+  youtube:{ color:"#ff3b30", name:"YouTube",  sub:"video",        glyph:"▶",
+            url:"https://www.youtube.com/tv", appId:"youtube.leanback.v4" },
+  raiplay:{ color:"#4f7cff", name:"RaiPlay",  sub:"tv italiana",  glyph:"὏A".length?"■":"■",
+            url:"https://www.raiplay.it/" },
+  infinity:{ color:"#8b5cf6",name:"Infinity", sub:"film e serie", glyph:"∞",
+            url:"https://mediasetinfinity.mediaset.it/" },
+  pluto:{ color:"#ffd166",   name:"Pluto TV", sub:"canali free",  glyph:"◉",
+            url:"https://pluto.tv/it/live-tv" },
+  twitch:{ color:"#9146ff",  name:"Twitch",   sub:"live",         glyph:"◑",
+            url:"https://www.twitch.tv/" },
+  radio:{ color:"#00d4b8",   name:"Radio Carducci", sub:"radio",  glyph:"♪",
+            url:RADIO_CARDUCCI_URL }
+};
+
+var MODES = [
+  { id:"coppia", label:"Coppia",      key:403, num:"1", color:"#ff4d6d",
+    tiles:["infinity","raiplay","youtube","pluto","radio","twitch"] },
+  { id:"amici",  label:"Amici",       key:404, num:"2", color:"#35d07f",
+    tiles:["twitch","youtube","pluto","radio","infinity","raiplay"] },
+  { id:"free",   label:"Stress-free", key:405, num:"3", color:"#ffd166",
+    tiles:["radio","raiplay","youtube","pluto"] },
+  { id:"tutti",  label:"Tutti",       key:406, num:"4", color:"#4cc9f0",
+    tiles:["youtube","raiplay","infinity","pluto","twitch","radio"] }
+];
+
+/* ==============================================================
+   STATO
+   ============================================================== */
+var modeIdx = 0, tileIdx = 0, COLS = 3, current = [];
+var $ = function(s){ return document.querySelector(s); };
+var grid = $("#grid"), modesEl = $("#modes");
+
+/* ==============================================================
+   RENDER
+   ============================================================== */
+function renderModes(){
+  modesEl.innerHTML = "";
+  $("#keyHints").innerHTML = "";
+  MODES.forEach(function(m,i){
+    var el = document.createElement("div");
+    el.className = "mode" + (i===modeIdx ? " on" : "");
+    el.style.setProperty("--c", m.color);
+    el.style.setProperty("--cbg", hexToRgba(m.color,.22));
+    el.innerHTML = '<span class="dot"></span>' + m.label;
+    modesEl.appendChild(el);
+
+    var h = document.createElement("div");
+    h.className = "key"; h.style.setProperty("--c", m.color);
+    h.innerHTML = "<i></i>" + m.label + " <span style='opacity:.5'>(" + m.num + ")</span>";
+    $("#keyHints").appendChild(h);
+  });
+}
+
+function renderGrid(){
+  var m = MODES[modeIdx];
+  current = m.tiles.map(function(k){ return SITES[k]; }).filter(Boolean);
+  document.documentElement.style.setProperty("--accent", m.color);
+  document.documentElement.style.setProperty("--accent-soft", hexToRgba(m.color,.35));
+  document.documentElement.style.setProperty("--accent-tint", hexToRgba(m.color,.16));
+  $("#modeName").textContent = m.label;
+
+  var rows = Math.ceil(current.length / COLS);
+  grid.style.gridTemplateRows = "repeat(" + rows + ",1fr)";
+  grid.innerHTML = "";
+  current.forEach(function(s,i){
+    var t = document.createElement("div");
+    t.className = "tile";
+    t.style.setProperty("--sc", s.color);
+    t.style.setProperty("--sc-bg", hexToRgba(s.color,.30));
+    t.innerHTML =
+      '<div class="glyph">' + s.glyph + '</div>' +
+      '<div class="meta"><div class="name">' + s.name + '</div>' +
+      '<div class="sub">' + s.sub + '</div></div>' +
+      '<div class="bar"></div>';
+    t.addEventListener("mouseenter", function(){ tileIdx = i; focus(); });
+    t.addEventListener("click", function(){ tileIdx = i; focus(); launch(); });
+    grid.appendChild(t);
+  });
+  if (tileIdx >= current.length) tileIdx = current.length - 1;
+  focus();
+}
+
+function focus(){
+  var kids = grid.children;
+  for (var i=0;i<kids.length;i++) kids[i].classList.toggle("focus", i===tileIdx);
+}
+
+function hexToRgba(h,a){
+  var n = parseInt(h.slice(1),16);
+  return "rgba(" + ((n>>16)&255) + "," + ((n>>8)&255) + "," + (n&255) + "," + a + ")";
+}
+
+/* ==============================================================
+   NAVIGAZIONE
+   ============================================================== */
+function move(dx,dy){
+  var n = current.length;
+  var r = Math.floor(tileIdx / COLS), c = tileIdx % COLS;
+  if (dx){
+    var nc = c + dx;
+    if (nc < 0 || nc > COLS-1) return;
+    var cand = r*COLS + nc;
+    if (cand < n) tileIdx = cand;
+  }
+  if (dy){
+    var rows = Math.ceil(n / COLS);
+    var nr = r + dy;
+    if (nr < 0 || nr > rows-1) return;
+    var cand2 = nr*COLS + c;
+    if (cand2 >= n) cand2 = n - 1;
+    tileIdx = cand2;
+  }
+  focus();
+}
+
+function setMode(i){
+  if (i === modeIdx) return;
+  modeIdx = i;
+  try { localStorage.setItem("home.mode", MODES[i].id); } catch(e){}
+  renderModes(); renderGrid();
+}
+
+/* ==============================================================
+   LANCIO — app nativa se possibile, altrimenti browser TV,
+   altrimenti navigazione diretta (utile per il test su desktop).
+   ============================================================== */
+function launch(){
+  var s = current[tileIdx];
+  if (!s || !s.url) return;
+  var tile = grid.children[tileIdx];
+  if (tile){ tile.classList.remove("launching"); void tile.offsetWidth;
+             tile.classList.add("launching"); }
+
+  var done = false;
+  function openWeb(){ if (done) return; done = true; location.href = s.url; }
+  /* se Luna non risponde ne' ok ne' ko, dopo 2.5s apriamo comunque il sito:
+     meglio un tile che fa qualcosa di un tile morto */
+  var guard = setTimeout(openWeb, 2500);
+  function settled(){ clearTimeout(guard); done = true; }
+
+  var svc = window.webOS && window.webOS.service && window.webOS.service.request
+            ? window.webOS.service : null;
+  if (!svc){ openWeb(); return; }
+
+  function viaBrowser(){
+    try {
+      svc.request("luna://com.webos.applicationManager", {
+        method:"launch",
+        parameters:{ id:"com.webos.app.browser", params:{ target:s.url } },
+        onSuccess: settled,
+        onFailure: openWeb
+      });
+    } catch(e){ openWeb(); }
+  }
+
+  try {
+    if (s.appId){
+      svc.request("luna://com.webos.applicationManager", {
+        method:"launch",
+        parameters:{ id:s.appId, params:{} },
+        onSuccess: settled,
+        onFailure: viaBrowser
+      });
+    } else viaBrowser();
+  } catch(e){ openWeb(); }
+}
+
+/* ==============================================================
+   TASTI — telecomando (HbbTV color keys) + tastiera
+   ============================================================== */
+document.addEventListener("keydown", function(e){
+  var k = e.keyCode;
+  for (var i=0;i<MODES.length;i++){
+    if (k === MODES[i].key || k === 49+i){ setMode(i); e.preventDefault(); return; }
+  }
+  switch(k){
+    case 37: move(-1,0); break;                 /* sinistra */
+    case 39: move(1,0);  break;                 /* destra   */
+    case 38: move(0,-1); break;                 /* su       */
+    case 40: move(0,1);  break;                 /* giu      */
+    case 13: launch();   break;                 /* OK       */
+    case 48: cyclePerf(); break;                /* 0: perf  */
+    case 461: case 27: break;                   /* Back: la Home resta */
+    default: return;
+  }
+  e.preventDefault();
+}, false);
+
+/* ==============================================================
+   OROLOGIO
+   ============================================================== */
+function tick(){
+  var d = new Date();
+  $("#clock").textContent =
+    ("0"+d.getHours()).slice(-2) + ":" + ("0"+d.getMinutes()).slice(-2);
+  try {
+    $("#date").textContent = d.toLocaleDateString("it-IT",
+      { weekday:"long", day:"numeric", month:"long" });
+  } catch(e){ $("#date").textContent = d.toDateString(); }
+}
+
+/* ==============================================================
+   PERF — misura FPS reali e scala gli effetti da sola.
+   full -> lite (via backdrop-filter) -> static (via animazioni)
+   Il tasto 0 cicla a mano.
+   ============================================================== */
+var PERF_LEVELS = ["glass","full","static"];
+function setPerf(level,note){
+  document.documentElement.setAttribute("data-perf", level);
+  $("#perfTag").textContent = level + (note ? " \u00b7 " + note : "");
+  try { localStorage.setItem("home.perf", level); } catch(e){}
+}
+function cyclePerf(){
+  var cur = document.documentElement.getAttribute("data-perf");
+  setPerf(PERF_LEVELS[(PERF_LEVELS.indexOf(cur)+1) % PERF_LEVELS.length], "manuale");
+}
+function measureFps(ms,cb){
+  var frames = 0, t0 = 0;
+  function step(t){
+    if (!t0) t0 = t;
+    frames++;
+    if (t - t0 < ms) requestAnimationFrame(step);
+    else cb(frames * 1000 / (t - t0));
+  }
+  requestAnimationFrame(step);
+}
+/* Parte da "glass". Se la TV e comoda, prova "full" e lo tiene solo se
+   regge davvero; se nemmeno "glass" basta, scende a "static". */
+function autoTune(){
+  setPerf("glass","misuro");
+  measureFps(1500, function(fpsGlass){
+    window.__fpsGlass = Math.round(fpsGlass);
+    if (fpsGlass < 26){ setPerf("static","auto"); return; }
+    if (fpsGlass < 52){ setPerf("glass","auto"); return; }
+    setPerf("full","provo");
+    measureFps(1500, function(fpsFull){
+      window.__fpsFull = Math.round(fpsFull);
+      if (fpsFull < 46) setPerf("glass","auto");
+      else setPerf("full","auto");
+    });
+  });
+}
+
+/* ==============================================================
+   BOOT
+   ============================================================== */
+(function init(){
+  try {
+    var savedMode = localStorage.getItem("home.mode");
+    if (savedMode){
+      for (var i=0;i<MODES.length;i++) if (MODES[i].id===savedMode) modeIdx = i;
+    }
+  } catch(e){}
+
+  renderModes(); renderGrid(); tick();
+  setInterval(tick, 15000);
+
+  var savedPerf = null;
+  try { savedPerf = localStorage.getItem("home.perf"); } catch(e){}
+  if (savedPerf && PERF_LEVELS.indexOf(savedPerf) > -1) setPerf(savedPerf, false);
+  else setTimeout(autoTune, 600);
+
+  /* su webOS la Home deve prendersi il focus dei tasti */
+  window.focus();
+  document.body.setAttribute("tabindex","-1");
+  document.body.focus();
+})();
+</script>
+</body>
+</html>
