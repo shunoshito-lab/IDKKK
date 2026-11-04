@@ -8,6 +8,7 @@ niente Homebrew: solo Developer Mode ufficiale.
 ```
 launcher/
   index.html        la Home intera: nessuna dipendenza oltre ai font Google
+  logos/            i tuoi file logo, opzionali
   webOSTV.js        libreria LG (Apache 2.0) — senza, window.webOS non esiste
   appinfo.json      id com.shun.launcher, 1920x1080, type web
   icon.png          80x80
@@ -50,8 +51,28 @@ Il pacchetto è già in `dist/`, verificato: struttura corretta, nessun warning.
 | Rosso / Verde / Giallo / Blu (403–406) | Coppia / Amici / Stress-free / Tutti |
 | 1 – 4 | le stesse modalità, da tastiera |
 | 0 | cicla i livelli grafici a mano |
+| M | suono acceso / spento |
 
-Modalità e livello grafico restano salvati tra un avvio e l'altro.
+Modalità, livello grafico e suono restano salvati tra un avvio e l'altro.
+Dopo 4 minuti fermi resta lo sfondo con l'ora; un tasto qualsiasi sveglia, e
+quel primo tasto non muove il focus.
+
+## Suoni
+
+Sintetizzati al volo con Web Audio: nessun file nel pacchetto, nessun ritardo
+di caricamento, nessun diritto di terzi. Quattro segnali — spostamento, bordo
+della griglia, cambio modalità, apertura — a volume basso. Si spengono con
+`M` e la scelta resta salvata.
+
+## Loghi
+
+Metti i file in `launcher/logos/` e aggiungi `logo:"logos/nome.png"` alla
+voce corrispondente in `SITES`. Dove non c'è un file resta il segno
+disegnato, quindi puoi farne anche solo qualcuno. I file entrano nel
+pacchetto da soli.
+
+Nel pacchetto non ci sono marchi di terzi: i segni disegnati sono forme
+originali.
 
 ## I tre livelli grafici — e perché
 

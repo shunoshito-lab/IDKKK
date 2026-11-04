@@ -114,6 +114,19 @@ body{font-family:var(--ui);color:var(--ink);-webkit-font-smoothing:antialiased}
 .spill{position:absolute;inset:0;pointer-events:none;z-index:1;opacity:0;
   transition:opacity .6s ease;will-change:opacity}
 .spill.on{opacity:1}
+/* Riposo: dopo qualche minuto resta lo sfondo e l'ora. Si anima solo
+   l'opacity, quindi non costa nulla restarci tutta la notte. */
+#saver{position:absolute;inset:0;z-index:3;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:calc(10*var(--u));
+  opacity:0;pointer-events:none;transition:opacity 1.1s ease}
+#saverClock{font-family:var(--display);font-size:calc(210*var(--u));font-weight:500;
+  line-height:1;letter-spacing:-.04em;font-variant-numeric:tabular-nums;
+  text-shadow:0 calc(20*var(--u)) calc(60*var(--u)) rgba(0,0,0,.6)}
+#saverDate{font-size:calc(30*var(--u));color:var(--ink-2);text-transform:capitalize;
+  letter-spacing:.06em}
+#app{transition:opacity 1.1s ease}
+html.idle #app{opacity:0;pointer-events:none}
+html.idle #saver{opacity:1}
 #vignette{position:absolute;inset:0;pointer-events:none;z-index:1;
   background:radial-gradient(130% 100% at 50% 45%,rgba(0,0,0,0) 48%,rgba(0,0,0,.62) 100%)}
 
@@ -192,6 +205,12 @@ h1 em{font-style:normal;color:var(--accent);transition:color .5s ease}
   box-shadow:inset 0 calc(1.5*var(--u)) 0 rgba(255,255,255,.34),
              0 calc(14*var(--u)) calc(30*var(--u)) calc(-14*var(--u)) var(--sc)}
 .mark svg{width:calc(40*var(--u));height:calc(40*var(--u));display:block}
+/* se in logos/ c'e' un file, il riquadro ospita l'immagine e il fondo
+   colorato si fa da parte */
+.mark img{width:calc(52*var(--u));height:calc(52*var(--u));object-fit:contain;display:block}
+.mark.file{background:rgba(255,255,255,.09)}
+.tile.lg .mark.file img{width:calc(62*var(--u));height:calc(62*var(--u))}
+.ghost img{width:100%;height:100%;object-fit:contain}
 .meta{display:flex;flex-direction:column;gap:calc(4*var(--u));position:relative}
 .name{font-family:var(--display);font-size:calc(34*var(--u));font-weight:700;
   letter-spacing:-.015em;line-height:1.05}
@@ -229,6 +248,8 @@ footer{display:flex;align-items:center;justify-content:space-between;
 #lampDot{width:calc(14*var(--u));height:calc(14*var(--u));border-radius:50%;
   background:var(--accent);box-shadow:0 0 calc(18*var(--u)) var(--accent);
   transition:background .6s ease,box-shadow .6s ease}
+#sndTag{font-size:calc(20*var(--u));color:var(--ink-2);transition:opacity .2s ease}
+#sndTag.off{opacity:.25}
 #perfTag{letter-spacing:.2em;text-transform:uppercase;font-size:calc(16*var(--u));
   color:var(--ink-3)}
 
@@ -269,6 +290,11 @@ html[data-perf="static"] .tile .ring{box-shadow:none}
   <div class="spill" id="spillB"></div>
   <div id="vignette"></div>
 
+  <div id="saver">
+    <div id="saverClock">--:--</div>
+    <div id="saverDate"></div>
+  </div>
+
   <div id="app">
     <header>
       <div>
@@ -295,6 +321,7 @@ html[data-perf="static"] .tile .ring{box-shadow:none}
       <div class="status">
         <div id="lamp"><span id="lampDot"></span><span id="lampName">luci</span></div>
         <span id="perfTag">—</span>
+        <span id="sndTag">&#9834;</span>
       </div>
     </footer>
   </div>
@@ -313,6 +340,11 @@ var PLACE = { name:"Roma", lat:41.9028, lon:12.4964 };
 
 /* URL ancora da confermare */
 var RADIO_CARDUCCI_URL = "https://www.radiocarducci.it/";
+
+/* Loghi veri: metti i file in logos/ e scrivi qui il nome, per esempio
+   logo:"logos/youtube.png". Formati: png, svg, webp. Dove non c'e' un file
+   resta il segno disegnato qui sotto, quindi si puo' anche farne solo
+   alcuni. I file finiscono nel pacchetto da soli. */
 
 /* Marchi disegnati a mano: forme originali, non i logo dei servizi. */
 var MARKS = {
@@ -356,6 +388,42 @@ var MODES = [
 var modeIdx = 0, tileIdx = 0, tiles = [];
 var $ = function(s){ return document.querySelector(s); };
 var grid = $("#grid"), modesEl = $("#modes"), thumb = $("#thumb");
+
+/* ==========================================================================
+   SUONO — sintetizzato al volo con Web Audio: nessun file, nessun ritardo
+   di caricamento, nessun diritto di terzi nel pacchetto.
+   ========================================================================== */
+var SND = { on:true, ctx:null };
+function tone(freq, dur, type, vol, to, delay){
+  if (!SND.on) return;
+  try {
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    if (!SND.ctx) SND.ctx = new AC();
+    var c = SND.ctx;
+    if (c.state === "suspended") c.resume();
+    var t0 = c.currentTime + (delay || 0);
+    var o = c.createOscillator(), g = c.createGain();
+    o.type = type || "sine";
+    o.frequency.setValueAtTime(freq, t0);
+    if (to) o.frequency.exponentialRampToValueAtTime(to, t0 + dur);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.linearRampToValueAtTime(vol || .05, t0 + .01);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    o.connect(g); g.connect(c.destination);
+    o.start(t0); o.stop(t0 + dur + .03);
+  } catch(e){}
+}
+var sndMove = function(){ tone(540, .06, "triangle", .035); };
+var sndEdge = function(){ tone(190, .07, "sine", .03); };
+var sndMode = function(){ tone(360, .17, "sine", .05, 540); };
+var sndGo   = function(){ tone(460, .1, "sine", .06, 690); tone(690, .16, "sine", .045, 920, .07); };
+function toggleSound(){
+  SND.on = !SND.on;
+  $("#sndTag").classList.toggle("off", !SND.on);
+  try { localStorage.setItem("home.snd", SND.on ? "1" : "0"); } catch(e){}
+  if (SND.on) sndMode();
+}
 
 function rgba(hex,a){
   var n = parseInt(hex.slice(1),16);
@@ -435,9 +503,9 @@ function renderGrid(){
     t.style.setProperty("--sc-bg", rgba(s.color,.30));
     t.style.setProperty("--sc-tint", rgba(s.color,.16));
     t.innerHTML =
-      (i < lay.big ? '<div class="ghost">'+MARKS[s.mark]+'</div>' : '') +
+      (i < lay.big ? '<div class="ghost">'+art(s)+'</div>' : '') +
       '<div class="sheen"></div>' +
-      '<div class="mark">' + MARKS[s.mark] + '</div>' +
+      '<div class="mark' + (s.logo ? ' file' : '') + '">' + art(s) + '</div>' +
       '<div class="meta"><div class="name">' + s.name + '</div>' +
       '<div class="sub">' + s.sub + '</div></div>' +
       '<div class="ring"></div>';
@@ -449,6 +517,11 @@ function renderGrid(){
   });
   if (tileIdx >= tiles.length) tileIdx = tiles.length - 1;
   paintFocus();
+}
+
+/* il file se c'e', altrimenti il segno disegnato */
+function art(s){
+  return s.logo ? '<img src="' + s.logo + '" alt="">' : MARKS[s.mark];
 }
 
 function paintFocus(){
@@ -503,10 +576,11 @@ function move(dx,dy){
   /* I vicini allineati vincono sempre. Il cono serve solo quando non ce ne
      sono: dal tile grande, "su" non deve scappare di lato. */
   var pool = overlap.length ? overlap : cone;
-  if (!pool.length) return;
+  if (!pool.length){ sndEdge(); return; }
   pool.sort(function(p,q){ return p.score - q.score; });
   tileIdx = pool[0].i;
   paintFocus();
+  sndMove();
 }
 
 function setMode(i){
@@ -516,7 +590,7 @@ function setMode(i){
   modesEl.querySelectorAll(".mode").forEach(function(n,k){
     n.classList.toggle("on", k===i);
   });
-  moveThumb(); renderGrid();
+  moveThumb(); renderGrid(); sndMode();
 }
 
 /* ==========================================================================
@@ -528,6 +602,7 @@ function launch(){
   if (!s || !s.url) return;
   var t = tiles[tileIdx];
   t.classList.remove("go"); void t.offsetWidth; t.classList.add("go");
+  sndGo();
 
   var done = false;
   function openWeb(){ if (done) return; done = true; location.href = s.url; }
@@ -562,6 +637,8 @@ function launch(){
    ========================================================================== */
 document.addEventListener("keydown", function(e){
   var k = e.keyCode;
+  /* il primo tasto dopo il riposo serve solo a svegliare */
+  if (wake()) { e.preventDefault(); return; }
   for (var i=0;i<MODES.length;i++){
     if (k === MODES[i].key || k === 49+i){ setMode(i); e.preventDefault(); return; }
   }
@@ -572,11 +649,26 @@ document.addEventListener("keydown", function(e){
     case 40: move(0,1);  break;
     case 13: launch();   break;
     case 48: cyclePerf(); break;
+    case 77: toggleSound(); break;   /* M: suono */
     case 461: case 27: break;   /* indietro: la Home resta */
     default: return;
   }
   e.preventDefault();
 }, false);
+
+/* ==========================================================================
+   RIPOSO — dopo qualche minuto resta lo sfondo con l'ora.
+   ========================================================================== */
+var IDLE_MS = 4*60*1000, idleT = null;
+function wake(){
+  var was = document.documentElement.classList.contains("idle");
+  document.documentElement.classList.remove("idle");
+  clearTimeout(idleT);
+  idleT = setTimeout(function(){
+    document.documentElement.classList.add("idle");
+  }, IDLE_MS);
+  return was;
+}
 
 /* ==========================================================================
    OROLOGIO E SALUTO
@@ -588,6 +680,8 @@ function tick(){
     $("#date").textContent = d.toLocaleDateString("it-IT",
       { weekday:"long", day:"numeric", month:"long" });
   } catch(e){ $("#date").textContent = d.toDateString(); }
+  $("#saverClock").textContent = $("#clock").textContent;
+  $("#saverDate").textContent = $("#date").textContent;
   $("#greet").firstChild.nodeValue =
     h < 5  ? "Ancora sveglio" :
     h < 12 ? "Buongiorno"     :
@@ -679,7 +773,15 @@ function autoTune(){
     if (saved) MODES.forEach(function(m,i){ if (m.id===saved) modeIdx = i; });
   } catch(e){}
 
-  renderModes(); renderGrid(); tick(); loadWeather();
+  try {
+    if (localStorage.getItem("home.snd") === "0"){
+      SND.on = false; $("#sndTag").classList.add("off");
+    }
+  } catch(e){}
+
+  renderModes(); renderGrid(); tick(); loadWeather(); wake();
+  document.addEventListener("mousemove", wake, { passive:true });
+  document.addEventListener("click", wake, { passive:true });
   setInterval(tick, 15000);
   setInterval(loadWeather, 15*60*1000);
 
