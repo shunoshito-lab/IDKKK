@@ -218,7 +218,6 @@ primo `ares-launch`; il piano B è tenere i tile sul browser di sistema.
 
 ## Da sistemare
 
-- `RADIO_CARDUCCI_URL` in cima a `index.html` è un segnaposto: serve l'URL vero.
 - `PLACE` è impostato su Roma: va messa la città giusta per il meteo.
 - I font arrivano da Google Fonts, quindi al primo avvio serve rete. Se la TV
   è spesso offline vanno incorporati nel pacchetto come `@font-face` base64.
