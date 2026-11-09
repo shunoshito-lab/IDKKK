@@ -9,31 +9,28 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Archivo:wght@400;500;600&display=swap">
 <style>
 /* ==========================================================================
-   HOME — launcher webOS
-   Concetto: la stanza e buia e la luce viene da dietro lo schermo. La UI e
-   la sorgente: ogni modalita ha un suo colore, lo schermo lo irradia dai
-   bordi, e quello stesso colore e cio che va alle lampadine dietro la TV.
-   Palette e tipografia sono token; tutto il resto deriva da qui.
+   HOME — launcher webOS, impianto da tv box
+   In alto lo scaffale: racconta l'app a fuoco, con le uscite della settimana
+   quando ci sono. Sotto, i riquadri 16:9 delle app: quello a fuoco si
+   solleva, prende luce e mostra il nome. La stanza e' buia, lo schermo
+   irradia dai bordi il colore dell'app scelta.
+   Regola di tutto il file: si animano solo transform e opacity.
    ========================================================================== */
 :root{
   color-scheme:dark;
-  /* colore */
-  --void:#06070e;          /* nero con deriva blu, non nero puro */
-  --ink:#eef1fa;
-  --ink-2:rgba(238,241,250,.66);
-  --ink-3:rgba(238,241,250,.40);
-  --pane:rgba(12,15,26,.44);
-  --pane-line:rgba(255,255,255,.13);
+  --void:#06070e;
+  --ink:#f1f3fb;
+  --ink-2:rgba(241,243,251,.68);
+  --ink-3:rgba(241,243,251,.42);
+  --line:rgba(255,255,255,.13);
   --accent:#ff5470;
   --accent-soft:rgba(255,84,112,.38);
   --accent-tint:rgba(255,84,112,.15);
-  /* tipografia */
   --display:"Bricolage Grotesque","Trebuchet MS",system-ui,sans-serif;
   --ui:"Archivo","Helvetica Neue",Helvetica,Arial,sans-serif;
-  /* unita: 1u = 1/1920 della larghezza dello stage, impostata da JS */
-  --u:calc(100vw / 1920);
-  --safe:calc(56 * var(--u));
-  --r:calc(30 * var(--u));
+  --u:calc(100vw / 1920);           /* 1u = 1/1920 della larghezza, da JS */
+  --safe:calc(84 * var(--u));
+  --cols:6;
 }
 *{margin:0;padding:0;box-sizing:border-box}
 button{background:none;border:0;font:inherit;color:inherit;cursor:pointer;
@@ -43,358 +40,374 @@ body{font-family:var(--ui);color:var(--ink);-webkit-font-smoothing:antialiased}
 #stage{position:relative;width:100%;height:100%;overflow:hidden;background:var(--void)}
 
 /* ---------- sfondo ------------------------------------------------------ */
-/* Nessun filter e nessun blend: la sfocatura e dentro i gradienti, cosi i
-   livelli restano promossi sulla GPU e si anima solo transform. */
 #sky{position:absolute;inset:0;z-index:0;
-  background:radial-gradient(140% 100% at 50% -10%, #111a33 0%, #06070e 58%)}
-.orb{position:absolute;border-radius:50%;will-change:transform;
-  transform:translate3d(0,0,0)}
-.o1{width:calc(1240*var(--u));height:calc(1240*var(--u));left:-12%;top:-24%;
+  background:radial-gradient(140% 100% at 50% -10%, #121a36 0%, #06070e 60%)}
+.orb{position:absolute;border-radius:50%;will-change:transform;transform:translate3d(0,0,0)}
+.o1{width:calc(1240*var(--u));height:calc(1240*var(--u));left:-14%;top:-30%;
   background:radial-gradient(circle at 50% 50%, var(--accent) 0%,
     var(--accent-soft) 36%, var(--accent-tint) 58%, rgba(0,0,0,0) 77%);
-  animation:o1 30s ease-in-out infinite}
-.o2{width:calc(1120*var(--u));height:calc(1120*var(--u));right:-14%;top:4%;
-  background:radial-gradient(circle at 50% 50%, #3d7bff 0%, rgba(61,123,255,.44) 36%,
-    rgba(61,123,255,.12) 58%, rgba(0,0,0,0) 77%);
-  animation:o2 38s ease-in-out infinite}
-.o3{width:calc(1320*var(--u));height:calc(1320*var(--u));left:18%;bottom:-38%;
-  background:radial-gradient(circle at 50% 50%, #8b5cf6 0%, rgba(139,92,246,.40) 36%,
-    rgba(139,92,246,.11) 58%, rgba(0,0,0,0) 77%);
-  animation:o3 45s ease-in-out infinite}
-.o4{width:calc(980*var(--u));height:calc(980*var(--u));right:6%;bottom:-28%;
-  background:radial-gradient(circle at 50% 50%, #12d9c4 0%, rgba(18,217,196,.34) 36%,
-    rgba(18,217,196,.09) 58%, rgba(0,0,0,0) 76%);
-  animation:o4 34s ease-in-out infinite}
+  animation:o1 32s ease-in-out infinite}
+.o2{width:calc(1120*var(--u));height:calc(1120*var(--u));right:-16%;top:-2%;
+  background:radial-gradient(circle at 50% 50%, #3d7bff 0%, rgba(61,123,255,.40) 36%,
+    rgba(61,123,255,.11) 58%, rgba(0,0,0,0) 77%);
+  animation:o2 40s ease-in-out infinite}
+.o3{width:calc(1320*var(--u));height:calc(1320*var(--u));left:20%;bottom:-46%;
+  background:radial-gradient(circle at 50% 50%, #8b5cf6 0%, rgba(139,92,246,.36) 36%,
+    rgba(139,92,246,.10) 58%, rgba(0,0,0,0) 77%);
+  animation:o3 47s ease-in-out infinite}
 @keyframes o1{0%,100%{transform:translate3d(0,0,0) scale(1)}
-  34%{transform:translate3d(17vw,11vh,0) scale(1.16)}
-  67%{transform:translate3d(5vw,23vh,0) scale(.9)}}
-@keyframes o2{0%,100%{transform:translate3d(0,0,0) scale(1.06)}
-  40%{transform:translate3d(-19vw,15vh,0) scale(.87)}
-  72%{transform:translate3d(-7vw,-9vh,0) scale(1.19)}}
-@keyframes o3{0%,100%{transform:translate3d(0,0,0) scale(.94)}
-  45%{transform:translate3d(20vw,-17vh,0) scale(1.2)}
-  76%{transform:translate3d(-11vw,-5vh,0) scale(1.02)}}
-@keyframes o4{0%,100%{transform:translate3d(0,0,0) scale(1.1)}
-  38%{transform:translate3d(-15vw,-19vh,0) scale(.89)}
-  70%{transform:translate3d(-25vw,-3vh,0) scale(1.12)}}
-
-/* nastri d'aurora: fasce lunghe, ruotate, bordi gia sfumati */
-/* La sfumatura su entrambi gli assi sta dentro il gradiente: una mask-image
-   qui costerebbe un passaggio di composizione in piu a ogni frame. */
-.ribbon{position:absolute;left:-30%;width:160%;height:calc(340*var(--u));
-  will-change:transform;opacity:.55;
-  background:
-    radial-gradient(ellipse 34% 50% at 32% 50%, var(--rc) 0%, rgba(0,0,0,0) 72%),
-    radial-gradient(ellipse 40% 50% at 64% 50%, var(--rc2) 0%, rgba(0,0,0,0) 74%)}
-.r1{top:14%;--rc:rgba(109,142,255,.55);--rc2:rgba(197,122,255,.42);
-  animation:rib1 26s ease-in-out infinite}
-.r2{top:52%;--rc:rgba(18,217,196,.34);--rc2:rgba(61,123,255,.40);
-  animation:rib2 33s ease-in-out infinite}
-@keyframes rib1{0%,100%{transform:translate3d(-6%,0,0) rotate(-9deg) scaleY(1)}
-  50%{transform:translate3d(6%,calc(40*var(--u)),0) rotate(-5deg) scaleY(1.35)}}
-@keyframes rib2{0%,100%{transform:translate3d(5%,0,0) rotate(7deg) scaleY(1.2)}
-  50%{transform:translate3d(-7%,calc(-50*var(--u)),0) rotate(11deg) scaleY(.85)}}
-
-/* polvere luminosa: due livelli, parallasse lenta */
-.dust{position:absolute;inset:-20%;will-change:transform;opacity:.5;
-  background-repeat:repeat;background-size:calc(420*var(--u)) calc(420*var(--u))}
-.d1{animation:dust1 70s linear infinite;
-  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='420' height='420'><circle cx="136.0" cy="63.4" r="1.45" fill="%23fff" opacity="0.3"/><circle cx="225.1" cy="153.6" r="0.68" fill="%23fff" opacity="0.58"/><circle cx="15.7" cy="182.1" r="0.69" fill="%23fff" opacity="0.31"/><circle cx="178.3" cy="347.3" r="0.76" fill="%23fff" opacity="0.4"/><circle cx="263.5" cy="398.0" r="1.35" fill="%23fff" opacity="0.51"/><circle cx="410.0" cy="19.6" r="1.72" fill="%23fff" opacity="0.44"/><circle cx="60.6" cy="49.5" r="1.0" fill="%23fff" opacity="0.78"/><circle cx="75.9" cy="244.3" r="1.43" fill="%23fff" opacity="0.49"/><circle cx="230.1" cy="26.4" r="0.68" fill="%23fff" opacity="0.38"/><circle cx="285.8" cy="179.6" r="1.01" fill="%23fff" opacity="0.63"/><circle cx="190.3" cy="125.9" r="1.63" fill="%23fff" opacity="0.7"/><circle cx="102.5" cy="241.3" r="1.28" fill="%23fff" opacity="0.82"/><circle cx="306.4" cy="120.9" r="1.87" fill="%23fff" opacity="0.33"/><circle cx="175.6" cy="318.0" r="0.8" fill="%23fff" opacity="0.57"/><circle cx="16.5" cy="280.7" r="1.59" fill="%23fff" opacity="0.62"/><circle cx="367.7" cy="131.8" r="1.5" fill="%23fff" opacity="0.64"/><circle cx="243.6" cy="191.6" r="1.69" fill="%23fff" opacity="0.86"/><circle cx="199.1" cy="278.9" r="0.68" fill="%23fff" opacity="0.71"/><circle cx="271.8" cy="417.1" r="1.67" fill="%23fff" opacity="0.43"/><circle cx="162.0" cy="280.8" r="0.63" fill="%23fff" opacity="0.55"/><circle cx="70.6" cy="49.2" r="0.68" fill="%23fff" opacity="0.75"/><circle cx="54.3" cy="104.0" r="1.11" fill="%23fff" opacity="0.82"/><circle cx="33.8" cy="188.7" r="1.31" fill="%23fff" opacity="0.82"/><circle cx="344.1" cy="362.9" r="0.96" fill="%23fff" opacity="0.52"/><circle cx="150.7" cy="371.4" r="1.85" fill="%23fff" opacity="0.35"/><circle cx="74.0" cy="97.4" r="0.9" fill="%23fff" opacity="0.57"/><circle cx="247.4" cy="110.4" r="0.61" fill="%23fff" opacity="0.52"/><circle cx="155.1" cy="237.9" r="1.84" fill="%23fff" opacity="0.7"/><circle cx="216.5" cy="259.4" r="1.48" fill="%23fff" opacity="0.29"/><circle cx="377.8" cy="327.6" r="1.74" fill="%23fff" opacity="0.77"/><circle cx="164.8" cy="167.6" r="0.73" fill="%23fff" opacity="0.66"/><circle cx="26.1" cy="28.3" r="0.87" fill="%23fff" opacity="0.36"/><circle cx="142.8" cy="22.1" r="0.6" fill="%23fff" opacity="0.35"/><circle cx="42.6" cy="152.7" r="0.63" fill="%23fff" opacity="0.82"/><circle cx="257.9" cy="62.4" r="0.93" fill="%23fff" opacity="0.48"/><circle cx="152.9" cy="51.6" r="1.7" fill="%23fff" opacity="0.9"/><circle cx="195.7" cy="203.2" r="0.71" fill="%23fff" opacity="0.32"/><circle cx="143.9" cy="111.2" r="1.68" fill="%23fff" opacity="0.35"/><circle cx="9.7" cy="399.4" r="1.29" fill="%23fff" opacity="0.35"/><circle cx="228.1" cy="11.4" r="1.29" fill="%23fff" opacity="0.89"/><circle cx="362.6" cy="292.4" r="0.94" fill="%23fff" opacity="0.49"/><circle cx="70.2" cy="324.2" r="1.29" fill="%23fff" opacity="0.76"/><circle cx="138.5" cy="93.7" r="1.65" fill="%23fff" opacity="0.89"/><circle cx="358.1" cy="338.6" r="1.66" fill="%23fff" opacity="0.73"/><circle cx="95.2" cy="217.4" r="1.06" fill="%23fff" opacity="0.27"/><circle cx="11.7" cy="117.4" r="0.94" fill="%23fff" opacity="0.7"/></svg>")}
-.d2{animation:dust2 110s linear infinite;opacity:.3;
-  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='680' height='680'><circle cx="650.4" cy="304.1" r="2.5" fill="%23fff" opacity="0.64"/><circle cx="649.4" cy="248.0" r="1.35" fill="%23fff" opacity="0.3"/><circle cx="133.8" cy="139.0" r="2.0" fill="%23fff" opacity="0.61"/><circle cx="571.5" cy="326.0" r="2.04" fill="%23fff" opacity="0.56"/><circle cx="57.6" cy="449.2" r="2.46" fill="%23fff" opacity="0.55"/><circle cx="510.1" cy="325.1" r="1.29" fill="%23fff" opacity="0.56"/><circle cx="226.1" cy="544.6" r="2.55" fill="%23fff" opacity="0.38"/><circle cx="272.9" cy="643.8" r="2.16" fill="%23fff" opacity="0.28"/><circle cx="86.4" cy="102.8" r="2.45" fill="%23fff" opacity="0.56"/><circle cx="99.4" cy="562.0" r="2.57" fill="%23fff" opacity="0.5"/><circle cx="238.3" cy="373.1" r="1.21" fill="%23fff" opacity="0.21"/><circle cx="660.2" cy="441.8" r="1.84" fill="%23fff" opacity="0.62"/><circle cx="295.0" cy="592.8" r="2.32" fill="%23fff" opacity="0.29"/><circle cx="171.2" cy="199.2" r="1.38" fill="%23fff" opacity="0.46"/><circle cx="176.4" cy="284.9" r="1.21" fill="%23fff" opacity="0.61"/><circle cx="240.6" cy="311.5" r="1.93" fill="%23fff" opacity="0.61"/><circle cx="286.0" cy="624.1" r="1.8" fill="%23fff" opacity="0.44"/><circle cx="356.0" cy="12.7" r="1.7" fill="%23fff" opacity="0.28"/><circle cx="2.7" cy="543.4" r="1.28" fill="%23fff" opacity="0.41"/><circle cx="493.1" cy="378.4" r="1.52" fill="%23fff" opacity="0.43"/><circle cx="377.7" cy="533.3" r="1.17" fill="%23fff" opacity="0.45"/><circle cx="169.0" cy="188.3" r="2.24" fill="%23fff" opacity="0.43"/><circle cx="382.0" cy="516.8" r="2.46" fill="%23fff" opacity="0.4"/><circle cx="416.5" cy="343.8" r="1.82" fill="%23fff" opacity="0.51"/><circle cx="307.6" cy="362.6" r="1.76" fill="%23fff" opacity="0.62"/><circle cx="475.5" cy="596.0" r="2.51" fill="%23fff" opacity="0.32"/></svg>");
-  background-size:calc(680*var(--u)) calc(680*var(--u))}
-@keyframes dust1{from{transform:translate3d(0,0,0)}to{transform:translate3d(calc(420*var(--u)),calc(-420*var(--u)),0)}}
-@keyframes dust2{from{transform:translate3d(0,0,0)}to{transform:translate3d(calc(-680*var(--u)),calc(340*var(--u)),0)}}
-
-/* alone ai bordi: e lo schermo che "illumina la stanza", cioe l'anteprima
-   di cio che va alle lampadine dietro la TV */
-/* L'alone e in due strati sovrapposti: si dipinge quello nascosto e poi si
-   incrociano le opacity. Transizionare box-shadow a schermo intero vorrebbe
-   dire ripitturare 2 milioni di pixel a ogni freccia premuta. */
+  34%{transform:translate3d(16vw,10vh,0) scale(1.15)}
+  67%{transform:translate3d(5vw,20vh,0) scale(.92)}}
+@keyframes o2{0%,100%{transform:translate3d(0,0,0) scale(1.05)}
+  40%{transform:translate3d(-18vw,14vh,0) scale(.88)}
+  72%{transform:translate3d(-7vw,-8vh,0) scale(1.17)}}
+@keyframes o3{0%,100%{transform:translate3d(0,0,0) scale(.95)}
+  45%{transform:translate3d(18vw,-15vh,0) scale(1.18)}
+  76%{transform:translate3d(-10vw,-5vh,0) scale(1.02)}}
+/* alone ai bordi nel colore dell'app a fuoco: due strati che si scambiano in
+   dissolvenza, cosi' non si interpola mai un'ombra grande quanto lo schermo */
 .spill{position:absolute;inset:0;pointer-events:none;z-index:1;opacity:0;
-  transition:opacity .6s ease;will-change:opacity}
+  transition:opacity .55s ease;will-change:opacity}
 .spill.on{opacity:1}
-/* Riposo: dopo qualche minuto resta lo sfondo e l'ora. Si anima solo
-   l'opacity, quindi non costa nulla restarci tutta la notte. */
-#saver{position:absolute;inset:0;z-index:3;display:flex;flex-direction:column;
+#vignette{position:absolute;inset:0;pointer-events:none;z-index:1;
+  background:
+    linear-gradient(180deg,rgba(4,5,10,.0) 30%,rgba(4,5,10,.62) 100%),
+    radial-gradient(130% 100% at 50% 40%,rgba(0,0,0,0) 50%,rgba(0,0,0,.55) 100%)}
+
+/* ---------- riposo ------------------------------------------------------ */
+#saver{position:absolute;inset:0;z-index:4;display:flex;flex-direction:column;
   align-items:center;justify-content:center;gap:calc(10*var(--u));
   opacity:0;pointer-events:none;transition:opacity 1.1s ease}
 #saverClock{font-family:var(--display);font-size:calc(210*var(--u));font-weight:500;
   line-height:1;letter-spacing:-.04em;font-variant-numeric:tabular-nums;
   text-shadow:0 calc(20*var(--u)) calc(60*var(--u)) rgba(0,0,0,.6)}
-#saverDate{font-size:calc(30*var(--u));color:var(--ink-2);text-transform:capitalize;
-  letter-spacing:.06em}
-#app{transition:opacity 1.1s ease}
+#saverDate{font-size:calc(30*var(--u));color:var(--ink-2);text-transform:capitalize;letter-spacing:.06em}
+#app{position:relative;z-index:2;height:100%;display:flex;flex-direction:column;
+  transition:opacity 1.1s ease}
 html.idle #app{opacity:0;pointer-events:none}
 html.idle #saver{opacity:1}
-#vignette{position:absolute;inset:0;pointer-events:none;z-index:1;
-  background:radial-gradient(130% 100% at 50% 45%,rgba(0,0,0,0) 48%,rgba(0,0,0,.62) 100%)}
 
-/* ---------- impalcatura ------------------------------------------------- */
-#app{position:relative;z-index:2;height:100%;display:flex;flex-direction:column;
-  padding:var(--safe) var(--safe) calc(34*var(--u))}
-header{display:flex;align-items:flex-start;justify-content:space-between;
-  gap:calc(40*var(--u));margin-bottom:calc(30*var(--u))}
-.eyebrow{font-size:calc(19*var(--u));letter-spacing:.42em;text-transform:uppercase;
-  color:var(--ink-3);font-weight:600}
-h1{font-family:var(--display);font-size:calc(72*var(--u));font-weight:800;
-  line-height:.98;letter-spacing:-.025em;margin-top:calc(8*var(--u));
-  text-wrap:balance}
-h1 em{font-style:normal;color:var(--accent);transition:color .5s ease}
-.right{display:flex;align-items:flex-start;gap:calc(34*var(--u))}
-.wx{text-align:right;padding-top:calc(6*var(--u))}
-.wx-top{display:flex;align-items:center;justify-content:flex-end;gap:calc(10*var(--u))}
-.wx-temp{font-family:var(--display);font-size:calc(40*var(--u));font-weight:700;
-  font-variant-numeric:tabular-nums}
-.wx-desc{font-size:calc(19*var(--u));color:var(--ink-2);margin-top:calc(2*var(--u))}
-.wx svg{width:calc(30*var(--u));height:calc(30*var(--u));color:var(--ink-2)}
-.time{text-align:right;border-left:1px solid var(--pane-line);
-  padding-left:calc(34*var(--u))}
-#clock{font-family:var(--display);font-size:calc(66*var(--u));font-weight:500;
-  line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
-#date{font-size:calc(20*var(--u));color:var(--ink-2);margin-top:calc(6*var(--u));
-  text-transform:capitalize}
-
-/* ---------- selettore modalita ------------------------------------------ */
-#modes{position:relative;display:inline-flex;align-self:flex-start;
-  gap:calc(4*var(--u));padding:calc(5*var(--u));border-radius:999px;
-  background:rgba(10,13,23,.5);border:1px solid var(--pane-line);
-  margin-bottom:calc(28*var(--u))}
-#thumb{position:absolute;top:calc(5*var(--u));left:0;height:calc(54*var(--u));
-  border-radius:999px;background:var(--mc);
-  box-shadow:0 0 calc(34*var(--u)) var(--mc);
-  transition:transform .32s cubic-bezier(.3,.9,.3,1),width .32s cubic-bezier(.3,.9,.3,1),
-             background .32s ease;
+/* ---------- barra in alto ----------------------------------------------- */
+#bar{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;
+  gap:calc(30*var(--u));padding:calc(40*var(--u)) var(--safe) calc(18*var(--u))}
+#date{font-size:calc(22*var(--u));color:var(--ink-2);text-transform:capitalize;font-weight:500}
+.right{display:flex;align-items:center;justify-content:flex-end;gap:calc(24*var(--u))}
+.wx{display:flex;align-items:center;gap:calc(9*var(--u));font-size:calc(22*var(--u));color:var(--ink-2)}
+.wx svg{width:calc(26*var(--u));height:calc(26*var(--u))}
+.wx b{font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
+#clock{font-family:var(--display);font-size:calc(40*var(--u));font-weight:700;
+  font-variant-numeric:tabular-nums;letter-spacing:-.02em;line-height:1}
+#modes{position:relative;display:inline-flex;gap:calc(4*var(--u));padding:calc(5*var(--u));
+  border-radius:999px;background:rgba(10,13,23,.55);border:1px solid var(--line)}
+#thumb{position:absolute;top:calc(5*var(--u));left:0;height:calc(50*var(--u));border-radius:999px;
+  background:var(--mc);box-shadow:0 0 calc(30*var(--u)) var(--mc);
+  transition:transform .3s cubic-bezier(.3,.9,.3,1),width .3s cubic-bezier(.3,.9,.3,1),background .3s ease;
   will-change:transform,width}
-.mode{position:relative;z-index:1;display:flex;align-items:center;
-  gap:calc(11*var(--u));height:calc(54*var(--u));
-  padding:0 calc(26*var(--u));border-radius:999px;
-  font-size:calc(23*var(--u));font-weight:600;color:var(--ink-3);
-  transition:color .28s ease;white-space:nowrap}
-.mode .dot{width:calc(12*var(--u));height:calc(12*var(--u));border-radius:50%;
-  background:var(--c);transition:opacity .28s ease}
+.mode{position:relative;z-index:1;display:flex;align-items:center;gap:calc(10*var(--u));
+  height:calc(50*var(--u));padding:0 calc(24*var(--u));border-radius:999px;
+  font-size:calc(22*var(--u));font-weight:600;color:var(--ink-3);
+  transition:color .25s ease;white-space:nowrap}
+.mode .dot{width:calc(11*var(--u));height:calc(11*var(--u));border-radius:50%;background:var(--c);
+  transition:opacity .25s ease}
 .mode.on{color:#0a0c14}
 .mode.on .dot{opacity:0}
 
-/* ---------- griglia ----------------------------------------------------- */
-#grid{flex:1;display:grid;gap:calc(22*var(--u));min-height:0}
-.tile{position:relative;overflow:hidden;border-radius:var(--r);
-  background:
-    linear-gradient(158deg,rgba(255,255,255,.14) 0%,rgba(255,255,255,.04) 38%,
-                    rgba(255,255,255,.01) 100%),
-    radial-gradient(128% 112% at 100% 0%, var(--sc-tint) 0%, rgba(0,0,0,0) 60%),
-    var(--pane);
-  border:1px solid var(--pane-line);
-  box-shadow:inset 0 calc(1.5*var(--u)) 0 rgba(255,255,255,.2),
-             inset 0 calc(-70*var(--u)) calc(90*var(--u)) calc(-56*var(--u)) rgba(0,0,0,.6),
-             0 calc(22*var(--u)) calc(52*var(--u)) calc(-20*var(--u)) rgba(0,0,0,.55);
-  display:flex;flex-direction:column;justify-content:space-between;
-  padding:calc(28*var(--u));
-  transition:transform .24s cubic-bezier(.2,.85,.25,1);
-  will-change:transform;contain:layout paint}
-.tile .sheen{position:absolute;inset:0;pointer-events:none;
-  background:linear-gradient(147deg,rgba(255,255,255,.1),rgba(255,255,255,0) 42%)}
-/* marchio grande in filigrana, solo sul tile grande */
-.tile .ghost{position:absolute;right:calc(-28*var(--u));bottom:calc(-38*var(--u));
-  width:calc(232*var(--u));height:calc(232*var(--u));opacity:.07;color:var(--sc);
-  pointer-events:none}
-.tile .ghost svg{width:100%;height:100%}
-.mark{width:calc(80*var(--u));height:calc(80*var(--u));border-radius:calc(25*var(--u));
-  display:flex;align-items:center;justify-content:center;color:#fff;
-  background:var(--sc-bg);
-  box-shadow:inset 0 calc(1.5*var(--u)) 0 rgba(255,255,255,.34),
-             0 calc(14*var(--u)) calc(30*var(--u)) calc(-14*var(--u)) var(--sc)}
-.mark svg{width:calc(40*var(--u));height:calc(40*var(--u));display:block}
-/* se in logos/ c'e' un file, il riquadro ospita l'immagine e il fondo
-   colorato si fa da parte */
-.mark img{width:calc(52*var(--u));height:calc(52*var(--u));object-fit:contain;display:block}
-.mark.file{background:rgba(255,255,255,.09)}
-.tile.lg .mark.file img{width:calc(62*var(--u));height:calc(62*var(--u))}
-.ghost img{width:100%;height:100%;object-fit:contain}
-.meta{display:flex;flex-direction:column;gap:calc(4*var(--u));position:relative}
-.name{font-family:var(--display);font-size:calc(34*var(--u));font-weight:700;
-  letter-spacing:-.015em;line-height:1.05}
-.sub{font-size:calc(18*var(--u));color:var(--ink-2)}
-.tile.lg .mark{width:calc(96*var(--u));height:calc(96*var(--u))}
-.tile.lg .mark svg{width:calc(48*var(--u));height:calc(48*var(--u))}
-.tile.lg .name{font-size:calc(50*var(--u))}
-.tile.lg .sub{font-size:calc(21*var(--u))}
-/* anello di focus: disegnato una volta, si accende con la sola opacity.
-   Transizionare box-shadow qui significherebbe ripitturare il tile a ogni
-   freccia premuta, cioe input lag sulla TV. */
-.tile .ring{position:absolute;inset:0;pointer-events:none;border-radius:inherit;
-  border:calc(3*var(--u)) solid var(--accent);
-  box-shadow:0 0 calc(50*var(--u)) var(--accent-soft),
-             0 calc(28*var(--u)) calc(64*var(--u)) rgba(0,0,0,.5);
-  opacity:0;transition:opacity .22s ease;will-change:opacity}
-.tile.focus{transform:translateZ(0) scale(1.035)}
-.tile.focus .ring{opacity:1}
-.tile.go{animation:go .42s ease}
-@keyframes go{45%{transform:translateZ(0) scale(.975)}100%{transform:translateZ(0) scale(1.035)}}
+/* ---------- area che scorre --------------------------------------------- */
+#port{flex:1;min-height:0;overflow:hidden;position:relative;padding:0 var(--safe)}
+#scroll{position:relative;will-change:transform;
+  transition:transform .36s cubic-bezier(.2,.8,.2,1)}
 
-/* ---------- piede ------------------------------------------------------- */
-footer{display:flex;align-items:center;justify-content:space-between;
-  gap:calc(30*var(--u));margin-top:calc(24*var(--u));font-size:calc(19*var(--u));
-  color:var(--ink-3)}
-.hints{display:flex;gap:calc(24*var(--u));flex-wrap:wrap}
-.hint{display:flex;align-items:center;gap:calc(9*var(--u))}
-.hint i{width:calc(12*var(--u));height:calc(12*var(--u));border-radius:50%;background:var(--c)}
-.hint b{font-weight:500;color:var(--ink-2)}
-.hint span{opacity:.5}
-.status{display:flex;align-items:center;gap:calc(18*var(--u));white-space:nowrap}
-#lamp{display:flex;align-items:center;gap:calc(10*var(--u));
-  padding:calc(8*var(--u)) calc(16*var(--u));border-radius:999px;
-  border:1px solid var(--pane-line);background:rgba(10,13,23,.5)}
-#lampDot{width:calc(14*var(--u));height:calc(14*var(--u));border-radius:50%;
-  background:var(--accent);box-shadow:0 0 calc(18*var(--u)) var(--accent);
-  transition:background .6s ease,box-shadow .6s ease}
-#sndTag{font-size:calc(20*var(--u));color:var(--ink-2);transition:opacity .2s ease}
-#sndTag.off{opacity:.25}
-#perfTag{letter-spacing:.2em;text-transform:uppercase;font-size:calc(16*var(--u));
-  color:var(--ink-3)}
+/* ---------- scaffale ---------------------------------------------------- */
+#shelf{height:calc(392*var(--u));display:flex;align-items:flex-end;gap:calc(40*var(--u));
+  padding-bottom:calc(40*var(--u));transition:opacity .3s ease}
+#shelf.away{opacity:0}
+.sh-copy{flex:none;width:calc(600*var(--u));min-width:0}
+#shCap{display:flex;align-items:center;gap:calc(10*var(--u));font-size:calc(18*var(--u));
+  letter-spacing:.3em;text-transform:uppercase;font-weight:600;color:var(--ink-2)}
+#shCap i{width:calc(10*var(--u));height:calc(10*var(--u));border-radius:50%;background:var(--sc);
+  box-shadow:0 0 calc(14*var(--u)) var(--sc)}
+#shTitle{font-family:var(--display);font-weight:800;font-size:calc(88*var(--u));line-height:.96;
+  letter-spacing:-.03em;margin-top:calc(12*var(--u));text-wrap:balance}
+#shSub{font-size:calc(24*var(--u));line-height:1.35;color:var(--ink-2);margin-top:calc(14*var(--u));
+  max-width:calc(520*var(--u))}
+.sh-row{flex:1;min-width:0;display:flex;gap:calc(18*var(--u));justify-content:flex-end;
+  align-items:flex-end;height:calc(300*var(--u))}
+.swap{animation:swap .26s cubic-bezier(.2,.8,.2,1)}
+@keyframes swap{from{opacity:0;transform:translate3d(0,calc(14*var(--u)),0)}to{opacity:1;transform:none}}
+.poster{flex:none;position:relative;width:calc(186*var(--u));height:calc(279*var(--u));
+  border-radius:calc(18*var(--u));overflow:hidden;
+  background:linear-gradient(165deg,var(--sc-mid) 0%,#0b0d18 92%);
+  box-shadow:inset 0 0 0 1px var(--line),0 calc(22*var(--u)) calc(40*var(--u)) calc(-20*var(--u)) rgba(0,0,0,.8);
+  display:flex;flex-direction:column;justify-content:flex-end;padding:calc(14*var(--u))}
+.poster img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;
+  transition:opacity .4s ease}
+.poster img.ok{opacity:1}
+.poster::after{content:"";position:absolute;inset:0;
+  background:linear-gradient(180deg,rgba(0,0,0,0) 46%,rgba(0,0,0,.82) 100%)}
+.poster b,.poster span{position:relative;z-index:1}
+.poster b{font-size:calc(18*var(--u));font-weight:600;line-height:1.2;
+  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.poster span{font-size:calc(14*var(--u));color:var(--ink-2);margin-top:calc(4*var(--u))}
+.art{flex:none;width:calc(480*var(--u));aspect-ratio:16/9;border-radius:calc(40*var(--u));
+  position:relative;overflow:hidden;background:var(--bg);
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.1),0 calc(40*var(--u)) calc(80*var(--u)) calc(-30*var(--u)) rgba(0,0,0,.85)}
+.art::after{content:"";position:absolute;inset:0;
+  background:linear-gradient(125deg,rgba(255,255,255,.22),rgba(255,255,255,0) 45%)}
+.art svg{width:30%;height:auto;max-height:56%;color:var(--fg);fill:currentColor}
+.art svg.line{fill:none}
+.art .word{font-size:calc(62*var(--u))}
 
-/* ---------- livelli di resa --------------------------------------------- */
-/* glass (default): nessuna sfocatura per frame.
-   full (opt-in): backdrop-filter vero, pesante sopra uno sfondo in movimento.
-   static (fallback): tutto fermo. */
-html[data-perf="full"] .tile{
-  -webkit-backdrop-filter:blur(calc(22*var(--u))) saturate(140%);
-  backdrop-filter:blur(calc(22*var(--u))) saturate(140%);
-  background:
-    linear-gradient(158deg,rgba(255,255,255,.13) 0%,rgba(255,255,255,.035) 38%,
-                    rgba(255,255,255,.01) 100%),
-    radial-gradient(128% 112% at 100% 0%, var(--sc-tint) 0%, rgba(0,0,0,0) 60%),
-    rgba(12,15,26,.24)}
-html[data-perf="static"] .orb,
-html[data-perf="static"] .ribbon,
-html[data-perf="static"] .dust{animation:none}
-html[data-perf="static"] .o4,html[data-perf="static"] .d2{display:none}
-html[data-perf="static"] .tile{background:
-  linear-gradient(158deg,rgba(255,255,255,.12),rgba(255,255,255,.03) 40%),
-  rgba(12,15,26,.74)}
-html[data-perf="static"] .tile .ring{box-shadow:none}
-@media (prefers-reduced-motion:reduce){
-  .orb,.ribbon,.dust{animation:none!important}
-}
+/* ---------- riquadri ---------------------------------------------------- */
+#grid{position:relative;display:grid;grid-template-columns:repeat(var(--cols),1fr);
+  column-gap:calc(34*var(--u));row-gap:calc(78*var(--u));padding-bottom:calc(420*var(--u))}
+.tile{position:relative;aspect-ratio:16/9;border-radius:calc(30*var(--u));
+  transform:translateZ(0);
+  transition:transform .18s cubic-bezier(.2,.8,.2,1);will-change:transform}
+/* ombra e bordo di luce: disegnati una volta, si accendono con l'opacity */
+.tile::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+  box-shadow:0 0 0 calc(3*var(--u)) rgba(255,255,255,.92),
+             0 calc(34*var(--u)) calc(60*var(--u)) calc(-16*var(--u)) rgba(0,0,0,.85),
+             0 0 calc(70*var(--u)) calc(-10*var(--u)) var(--sc);
+  opacity:0;transition:opacity .18s ease;will-change:opacity}
+.face{position:absolute;inset:0;border-radius:inherit;overflow:hidden;background:var(--bg);
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.09)}
+.face svg{width:32%;height:auto;max-height:58%;color:var(--fg);fill:currentColor;display:block}
+.face svg.line{fill:none}
+.face img{width:62%;height:62%;object-fit:contain;display:block}
+.word{font-family:var(--display);font-weight:800;font-size:calc(34*var(--u));color:var(--fg);
+  letter-spacing:-.025em;line-height:1;text-align:center;padding:0 calc(14*var(--u))}
+.word small{display:block;font-family:var(--ui);font-weight:600;font-size:.42em;letter-spacing:.2em;
+  text-transform:uppercase;opacity:.75;margin-top:.5em}
+.shine{position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+  background:linear-gradient(125deg,rgba(255,255,255,.32),rgba(255,255,255,0) 44%);
+  opacity:0;transition:opacity .18s ease}
+.label{position:absolute;left:calc(-30*var(--u));right:calc(-30*var(--u));
+  top:calc(100% + 22*var(--u));text-align:center;font-size:calc(21*var(--u));font-weight:600;
+  white-space:nowrap;opacity:0;transition:opacity .18s ease;pointer-events:none}
+.tile.focus{z-index:5;
+  transform:perspective(calc(1100*var(--u))) translate3d(0,calc(-8*var(--u)),0) scale(1.13)
+            rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg))}
+.tile.focus::before,.tile.focus .shine,.tile.focus .label{opacity:1}
+.tile.go{animation:go .34s ease}
+@keyframes go{45%{transform:perspective(calc(1100*var(--u))) scale(1.04)}}
+
+/* ---------- stato e avvisi ---------------------------------------------- */
+#status{position:absolute;right:var(--safe);bottom:calc(26*var(--u));z-index:3;display:flex;
+  gap:calc(14*var(--u));align-items:center;font-size:calc(15*var(--u));letter-spacing:.18em;
+  text-transform:uppercase;color:var(--ink-3)}
+#sndTag{font-size:calc(19*var(--u));letter-spacing:0;transition:opacity .2s ease}
+#sndTag.off{opacity:.3}
+#toast{position:absolute;left:50%;bottom:calc(70*var(--u));z-index:6;
+  transform:translate3d(-50%,calc(20*var(--u)),0);opacity:0;pointer-events:none;
+  padding:calc(14*var(--u)) calc(28*var(--u));border-radius:999px;
+  background:rgba(14,17,29,.92);border:1px solid var(--line);
+  font-size:calc(22*var(--u));font-weight:500;white-space:nowrap;
+  transition:opacity .25s ease,transform .3s cubic-bezier(.2,.8,.2,1)}
+#toast.on{opacity:1;transform:translate3d(-50%,0,0)}
+
+/* ---------- schermo stretto (anteprima sul telefono) -------------------- */
+html.portrait{--cols:3;--safe:calc(40*var(--u))}
+html.portrait #bar{grid-template-columns:1fr auto;row-gap:calc(22*var(--u))}
+html.portrait #modes{grid-column:1 / -1;grid-row:2;justify-self:center}
+html.portrait .mode{padding:0 calc(18*var(--u))}
+html.portrait #shelf{height:auto;flex-direction:column;align-items:flex-start;gap:calc(26*var(--u))}
+html.portrait .sh-copy{width:100%}
+html.portrait #shTitle{font-size:calc(74*var(--u))}
+html.portrait .sh-row{flex:none;width:100%;justify-content:flex-start;height:auto;overflow:hidden}
+html.portrait .art{width:calc(420*var(--u))}
+
+/* ---------- resa -------------------------------------------------------- */
+html[data-perf="static"] .orb{animation:none}
+html[data-perf="static"] .o3{display:none}
+@media (prefers-reduced-motion:reduce){ .orb{animation:none!important} }
 </style>
 </head>
 <body>
 <div id="stage">
-  <div id="sky">
-    <div class="orb o1"></div><div class="orb o2"></div>
-    <div class="orb o3"></div><div class="orb o4"></div>
-    <div class="ribbon r1"></div><div class="ribbon r2"></div>
-    <div class="dust d1"></div><div class="dust d2"></div>
-  </div>
+  <div id="sky"><div class="orb o1"></div><div class="orb o2"></div><div class="orb o3"></div></div>
   <div class="spill" id="spillA"></div>
   <div class="spill" id="spillB"></div>
   <div id="vignette"></div>
 
-  <div id="saver">
-    <div id="saverClock">--:--</div>
-    <div id="saverDate"></div>
-  </div>
+  <div id="saver"><div id="saverClock">--:--</div><div id="saverDate"></div></div>
 
   <div id="app">
-    <header>
-      <div>
-        <div class="eyebrow">Home</div>
-        <h1 id="greet">Buonasera<em id="modeName"></em></h1>
-      </div>
+    <header id="bar">
+      <div id="date"></div>
+      <nav id="modes"><div id="thumb"></div></nav>
       <div class="right">
-        <div class="wx">
-          <div class="wx-top"><span id="wxIcon"></span><span class="wx-temp" id="wxTemp">--&deg;</span></div>
-          <div class="wx-desc" id="wxDesc">meteo</div>
-        </div>
-        <div class="time">
-          <div id="clock">--:--</div>
-          <div id="date"></div>
-        </div>
+        <div class="wx"><span id="wxIcon"></span><b id="wxTemp">--&deg;</b><span id="wxDesc"></span></div>
+        <div id="clock">--:--</div>
       </div>
     </header>
 
-    <nav id="modes"><div id="thumb"></div></nav>
-    <main id="grid"></main>
-
-    <footer>
-      <div class="hints" id="hints"></div>
-      <div class="status">
-        <div id="lamp"><span id="lampDot"></span><span id="lampName">luci</span></div>
-        <span id="perfTag">—</span>
-        <span id="sndTag">&#9834;</span>
+    <div id="port">
+      <div id="scroll">
+        <section id="shelf">
+          <div class="sh-copy" id="shCopy">
+            <div id="shCap"><i></i><span id="shCapTxt"></span></div>
+            <h1 id="shTitle"></h1>
+            <p id="shSub"></p>
+          </div>
+          <div class="sh-row" id="shRow"></div>
+        </section>
+        <main id="grid"></main>
       </div>
-    </footer>
+    </div>
   </div>
+
+  <div id="status"><span id="perfTag"></span><span id="sndTag">&#9834;</span></div>
+  <div id="toast"></div>
 </div>
 
 <script src="webOSTV.js"></script>
+<script src="icons.js"></script>
 <script>
 "use strict";
 
 /* ==========================================================================
-   CONFIG — tutto cio che vorrai cambiare sta qui.
+   CONFIG — tutto cio' che vorrai cambiare sta qui.
    ========================================================================== */
 
-/* Meteo: Open-Meteo, gratis e senza chiave. Cambia qui la tua citta. */
+/* Meteo: Open-Meteo, gratis e senza chiave. Cambia qui la tua citta'. */
 var PLACE = { name:"Roma", lat:41.9028, lon:12.4964 };
 
-/* Radio Carducci */
-var RADIO_CARDUCCI_URL = "https://www.radiocarducci.com/";
-
-/* Loghi veri: metti i file in logos/ e scrivi qui il nome, per esempio
-   logo:"logos/youtube.png". Formati: png, svg, webp. Dove non c'e' un file
-   resta il segno disegnato qui sotto, quindi si puo' anche farne solo
-   alcuni. I file finiscono nel pacchetto da soli. */
-
-/* Marchi disegnati a mano: forme originali, non i logo dei servizi. */
+/* Segni disegnati a mano per cio' che non ha un'icona nella raccolta. */
 var MARKS = {
-  play:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4.5" width="20" height="15" rx="4.5"/><path d="M10.2 9.1v5.8l4.9-2.9z" fill="currentColor" stroke="none"/></svg>',
-  tv:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="13.5" rx="3"/><path d="M8 2.6l4 4.2 4-4.2"/><path d="M10.4 11.6v4.4l3.9-2.2z" fill="currentColor" stroke="none"/></svg>',
-  loop:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8.1" cy="12" r="4.3"/><circle cx="15.9" cy="12" r="4.3"/></svg>',
-  orbit:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="4.1" fill="currentColor" stroke="none"/><ellipse cx="12" cy="12" rx="10" ry="4.6" transform="rotate(-28 12 12)"/></svg>',
-  chat:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 11.3a8.3 8.3 0 0 1-9 8.3 9.2 9.2 0 0 1-3.5-.8L3.4 20.6l1.9-4.4a8.3 8.3 0 0 1 6.9-12.5 8.3 8.3 0 0 1 8.4 7.6z"/><path d="M9.3 10.4v2.6M12 9.1v5.2M14.7 10.4v2.6"/></svg>',
-  racket:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="9.6" cy="9.4" rx="5.6" ry="6.6" transform="rotate(-38 9.6 9.4)"/><path d="M13.6 14.2l5.6 6"/><path d="M6.6 6.8l6 5.2M8.4 4.9l5.1 6.4M5.1 9.1l5.7 4.3" stroke-width="1" opacity=".6"/><circle cx="18.6" cy="5.4" r="1.9" fill="currentColor" stroke="none"/></svg>',
-  wave:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="2.3" fill="currentColor" stroke="none"/><path d="M7.9 8.3a5.4 5.4 0 0 0 0 7.4M16.1 8.3a5.4 5.4 0 0 1 0 7.4"/><path d="M5 5.2a9.8 9.8 0 0 0 0 13.6M19 5.2a9.8 9.8 0 0 1 0 13.6"/></svg>'
+  tv:'<svg class="line" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="13.5" rx="3"/><path d="M8 2.6l4 4.2 4-4.2"/></svg>',
+  wave:'<svg class="line" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="2.3" fill="currentColor" stroke="none"/><path d="M7.9 8.3a5.4 5.4 0 0 0 0 7.4M16.1 8.3a5.4 5.4 0 0 1 0 7.4"/><path d="M5 5.2a9.8 9.8 0 0 0 0 13.6M19 5.2a9.8 9.8 0 0 1 0 13.6"/></svg>',
+  racket:'<svg class="line" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="14.6" cy="8.2" rx="5.4" ry="6.6" transform="rotate(38 14.6 8.2)"/><path d="M10.9 12.9L8.6 15.8M8.6 15.8l-4.9 5.5" stroke-width="2.6"/><path d="M11.6 5.2l6.3 5.6M10.4 7.9l5.9 5.2M13.4 3.3l5.6 5M17.3 3.5l-5.9 8.3M19.4 6.1l-5.2 7.3M14.6 2.6l-4.4 6.2" stroke-width=".8" opacity=".7"/><circle cx="5.2" cy="6.2" r="1.9" fill="currentColor" stroke="none"/></svg>',
+  plug:'<svg class="line" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5h18v4.2l-2.6 3.8H5.6L3 12.7z"/><path d="M8 12h8"/></svg>',
+  globe:'<svg class="line" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9.2"/><path d="M2.8 12h18.4M12 2.8c2.8 2.6 4 5.8 4 9.2s-1.2 6.6-4 9.2c-2.8-2.6-4-5.8-4-9.2s1.2-6.6 4-9.2z"/></svg>'
 };
 
-var SITES = {
-  youtube: { name:"YouTube",        sub:"video",            color:"#ff4133",
-             mark:"play",  url:"https://www.youtube.com/tv", appId:"youtube.leanback.v4" },
-  raiplay: { name:"RaiPlay",        sub:"tv italiana",      color:"#4f7cff",
-             mark:"tv",    url:"https://www.raiplay.it/" },
-  infinity:{ name:"Infinity",       sub:"film e serie",     color:"#8b5cf6",
-             mark:"loop",  url:"https://mediasetinfinity.mediaset.it/" },
-  pluto:   { name:"Pluto TV",       sub:"canali gratuiti",  color:"#ffc44d",
-             mark:"orbit", url:"https://pluto.tv/it/live-tv" },
-  twitch:  { name:"Twitch",         sub:"dirette",          color:"#9d6bff",
-             mark:"chat",  url:"https://www.twitch.tv/" },
-  radio:   { name:"Radio Carducci", sub:"radio",            color:"#12d9c4",
-             mark:"wave",  url:RADIO_CARDUCCI_URL },
-  tennis:  { name:"Tennis",         sub:"il telefono è la racchetta", color:"#35d07f",
-             mark:"racket", url:"tennis.html", internal:true }
+/* Le app.
+   icon   nome di un'icona in icons.js (Simple Icons, CC0)
+   mark   un segno disegnato qui sopra
+   word   niente icona: il nome scritto, come fanno molte app sulle tv box
+   logo   un tuo file in logos/, vince su tutto il resto
+   ids    identificativi dell'app nativa su webOS, provati in ordine
+   find   come riconoscerla se la TV concede l'elenco delle app installate
+   url    dove andare col browser della TV se l'app nativa non parte
+   tvmaze nomi del servizio su TVMaze, per le uscite della settimana       */
+var APPS = {
+  netflix:  { name:"Netflix", kind:"Film e serie", sub:"Serie, film e show originali.",
+              icon:"netflix", bg:"#0b0b0d", fg:"#e50914", color:"#e50914",
+              ids:["netflix"], find:["netflix"], url:"https://www.netflix.com/", tvmaze:["Netflix"] },
+  youtube:  { name:"YouTube", kind:"Video", sub:"Tutto quello che esce, da chiunque.",
+              icon:"youtube", bg:"#ffffff", fg:"#ff0033", color:"#ff3b30",
+              ids:["youtube.leanback.v4"], find:["youtube"], url:"https://www.youtube.com/tv", tvmaze:["YouTube"] },
+  prime:    { name:"Prime Video", kind:"Film e serie", sub:"Film, serie e sport inclusi con Prime.",
+              word:"prime video", bg:"linear-gradient(140deg,#0f79af,#1399ff)", fg:"#ffffff", color:"#1a98ff",
+              ids:["amazon"], find:["prime video","amazon"], url:"https://www.primevideo.com/", tvmaze:["Prime Video"] },
+  disney:   { name:"Disney+", kind:"Film e serie", sub:"Disney, Pixar, Marvel, Star Wars e altro.",
+              word:"Disney+", bg:"linear-gradient(150deg,#0a1a52,#113ccf)", fg:"#ffffff", color:"#2f6bff",
+              ids:["com.disney.disneyplus-prod"], find:["disney"], url:"https://www.disneyplus.com/", tvmaze:["Disney+"] },
+  appletv:  { name:"Apple TV", kind:"Film e serie", sub:"Gli originali Apple e il tuo catalogo.",
+              icon:"appletv", bg:"linear-gradient(160deg,#2b2d33,#0c0d10)", fg:"#ffffff", color:"#a8b0c2",
+              ids:["com.apple.appletv"], find:["apple tv"], url:"https://tv.apple.com/", tvmaze:["Apple TV","Apple TV+"] },
+  raiplay:  { name:"RaiPlay", kind:"Tv italiana", sub:"Dirette e programmi Rai, gratis.",
+              word:"RaiPlay", bg:"linear-gradient(140deg,#0a2f7a,#2f6fe0)", fg:"#ffffff", color:"#4f7cff",
+              find:["raiplay","rai play"], url:"https://www.raiplay.it/" },
+  infinity: { name:"Mediaset Infinity", kind:"Tv italiana", sub:"Canali Mediaset, film e serie.",
+              word:"Infinity", bg:"linear-gradient(140deg,#3b1a8f,#8b5cf6)", fg:"#ffffff", color:"#8b5cf6",
+              find:["mediaset","infinity"], url:"https://mediasetinfinity.mediaset.it/" },
+  pluto:    { name:"Pluto TV", kind:"Canali gratuiti", sub:"Centinaia di canali, senza abbonamento.",
+              word:"pluto tv", bg:"#0d0d10", fg:"#ffd23f", color:"#ffc44d",
+              find:["pluto"], url:"https://pluto.tv/it/live-tv" },
+  twitch:   { name:"Twitch", kind:"Dirette", sub:"Giochi, chiacchiere e musica in diretta.",
+              icon:"twitch", bg:"#9146ff", fg:"#ffffff", color:"#9d6bff",
+              ids:["tv.twitch.tv.starshot.lg"], find:["twitch"], url:"https://www.twitch.tv/" },
+  dazn:     { name:"DAZN", kind:"Sport", sub:"Serie A e sport in diretta.",
+              icon:"dazn", bg:"#0c161c", fg:"#f8fc00", color:"#d9dd2b",
+              ids:["dazn"], find:["dazn"], url:"https://www.dazn.com/" },
+  now:      { name:"NOW", kind:"Film, serie e sport", sub:"Sky senza parabola.",
+              icon:"now", bg:"linear-gradient(140deg,#00353a,#00818a)", fg:"#ffffff", color:"#00a3ad",
+              find:["now"], url:"https://www.nowtv.it/" },
+  paramount:{ name:"Paramount+", kind:"Film e serie", sub:"Una montagna di film e serie.",
+              icon:"paramountplus", bg:"#0064ff", fg:"#ffffff", color:"#2f7dff",
+              find:["paramount"], url:"https://www.paramountplus.com/it/", tvmaze:["Paramount+"] },
+  crunchy:  { name:"Crunchyroll", kind:"Anime", sub:"Anime in contemporanea col Giappone.",
+              icon:"crunchyroll", bg:"#f47521", fg:"#ffffff", color:"#ff8a3d",
+              find:["crunchyroll"], url:"https://www.crunchyroll.com/it/", tvmaze:["Crunchyroll"] },
+  spotify:  { name:"Spotify", kind:"Musica", sub:"Musica e podcast.",
+              icon:"spotify", bg:"#121212", fg:"#1ed760", color:"#1ed760",
+              ids:["spotify-beehive"], find:["spotify"], url:"https://open.spotify.com/" },
+  ytmusic:  { name:"YouTube Music", kind:"Musica", sub:"Canzoni, video e live.",
+              icon:"youtubemusic", bg:"#16161a", fg:"#ff0033", color:"#ff4d6d",
+              find:["youtube music"], url:"https://music.youtube.com/" },
+  radio:    { name:"Radio Carducci", kind:"Radio", sub:"In diretta dal sito.",
+              mark:"wave", bg:"linear-gradient(140deg,#06443f,#12d9c4)", fg:"#ffffff", color:"#12d9c4",
+              url:"https://www.radiocarducci.com/" },
+  tennis:   { name:"Tennis", kind:"Gioco", sub:"Il telefono è la racchetta. Si gioca anche col telecomando.",
+              mark:"racket", bg:"linear-gradient(140deg,#0b5a35,#35d07f)", fg:"#ffffff", color:"#35d07f",
+              url:"tennis.html", internal:true },
+  live:     { name:"TV dal vivo", kind:"Antenna", sub:"I canali del digitale terrestre.",
+              mark:"tv", bg:"linear-gradient(140deg,#232a3d,#49567a)", fg:"#ffffff", color:"#8fa0cf",
+              ids:["com.webos.app.livetv"] },
+  hdmi1:    { name:"HDMI 1", kind:"Ingresso", sub:"Console, decoder o computer sulla prima presa.",
+              mark:"plug", word2:"HDMI 1", bg:"linear-gradient(140deg,#1d2230,#3a4258)", fg:"#ffffff", color:"#8a94ad",
+              ids:["com.webos.app.hdmi1"] },
+  hdmi2:    { name:"HDMI 2", kind:"Ingresso", sub:"Seconda presa HDMI.",
+              mark:"plug", word2:"HDMI 2", bg:"linear-gradient(140deg,#1d2230,#3a4258)", fg:"#ffffff", color:"#8a94ad",
+              ids:["com.webos.app.hdmi2"] },
+  browser:  { name:"Browser", kind:"Internet", sub:"Il browser della TV.",
+              mark:"globe", bg:"linear-gradient(140deg,#123a6b,#3d8bff)", fg:"#ffffff", color:"#3d8bff",
+              ids:["com.webos.app.browser"] }
 };
 
 var MODES = [
   { id:"coppia", label:"Coppia",      key:403, color:"#ff5470",
-    tiles:["infinity","raiplay","youtube","pluto","tennis","twitch","radio"] },
+    apps:["netflix","prime","disney","appletv","infinity","raiplay","now","paramount","youtube","spotify","tennis","radio"] },
   { id:"amici",  label:"Amici",       key:404, color:"#35d07f",
-    tiles:["tennis","twitch","youtube","pluto","radio","infinity","raiplay"] },
+    apps:["tennis","youtube","twitch","dazn","spotify","netflix","pluto","crunchy","ytmusic","hdmi1","prime","radio"] },
   { id:"free",   label:"Stress-free", key:405, color:"#ffc44d",
-    tiles:["radio","raiplay","youtube","pluto"] },
+    apps:["radio","spotify","ytmusic","raiplay","youtube","pluto"] },
   { id:"tutti",  label:"Tutti",       key:406, color:"#4cc9f0",
-    tiles:["youtube","raiplay","infinity","pluto","twitch","radio","tennis"] }
+    apps:["netflix","youtube","prime","disney","appletv","raiplay","infinity","pluto","twitch","dazn","now",
+          "paramount","crunchy","spotify","ytmusic","radio","tennis","live","hdmi1","hdmi2","browser"] }
 ];
+
+/* Esempi per lo scaffale, usati SOLO fuori dalla TV (anteprima), dove le
+   chiamate esterne sono bloccate. Sulla TV i titoli arrivano da TVMaze. */
+var SAMPLE = {
+  "Netflix":["Love Is Blind","WWE Monday Night RAW","Steel Ball Run: JoJo's Bizarre Adventure","The Great Indian Kapil Show","Doozie's Doghouse"],
+  "Prime Video":["The Traitors Italia","LOL: Last One Laughing","The Assassin","Campus Drivers","A Tale of the Secret Saint"],
+  "Apple TV":["Nocturne","Knife Edge: Chasing Michelin Stars","Awkwafina: The Unlikely Cook"],
+  "Paramount+":["Tulsa King","MobLand","Dexter: Resurrection"],
+  "Crunchyroll":["Mission: Yozakura Family","Overgeared"]
+};
 
 /* ==========================================================================
    STATO
    ========================================================================== */
-var modeIdx = 0, tileIdx = 0, tiles = [];
+var IS_TV = /Web0S|webOS/i.test(navigator.userAgent) || !!window.PalmSystem;
+var modeIdx = 0, tileIdx = 0, tiles = [], cols = 6;
 var $ = function(s){ return document.querySelector(s); };
-var grid = $("#grid"), modesEl = $("#modes"), thumb = $("#thumb");
+var grid = $("#grid"), modesEl = $("#modes"), thumb = $("#thumb"), scrollEl = $("#scroll");
+var SHELF = {}, shelfIsSample = false;
+
+function rgba(hex,a){
+  var n = parseInt(hex.slice(1),16);
+  return "rgba(" + ((n>>16)&255) + "," + ((n>>8)&255) + "," + (n&255) + "," + a + ")";
+}
+function esc(t){ return String(t).replace(/[&<>"]/g, function(c){
+  return { "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c]; }); }
+
+/* L'unita' segue lo stage, non la finestra: la stessa pagina gira a schermo
+   intero sulla TV, in una cornice in anteprima e in verticale sul telefono. */
+function sizeStage(){
+  var host = $("#stage"), w = host.clientWidth, h = host.clientHeight;
+  var portrait = w < h * 0.9;
+  document.documentElement.classList.toggle("portrait", portrait);
+  document.documentElement.style.setProperty("--u", (w / (portrait ? 860 : 1920)) + "px");
+  cols = portrait ? 3 : 6;
+}
 
 /* ==========================================================================
-   SUONO — sintetizzato al volo con Web Audio: nessun file, nessun ritardo
-   di caricamento, nessun diritto di terzi nel pacchetto.
+   SUONO — sintetizzato, nessun file
    ========================================================================== */
 var SND = { on:true, ctx:null };
 function tone(freq, dur, type, vol, to, delay){
@@ -403,250 +416,322 @@ function tone(freq, dur, type, vol, to, delay){
     var AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return;
     if (!SND.ctx) SND.ctx = new AC();
-    var c = SND.ctx;
-    if (c.state === "suspended") c.resume();
-    var t0 = c.currentTime + (delay || 0);
-    var o = c.createOscillator(), g = c.createGain();
-    o.type = type || "sine";
-    o.frequency.setValueAtTime(freq, t0);
+    var c = SND.ctx; if (c.state === "suspended") c.resume();
+    var t0 = c.currentTime + (delay || 0), o = c.createOscillator(), g = c.createGain();
+    o.type = type || "sine"; o.frequency.setValueAtTime(freq, t0);
     if (to) o.frequency.exponentialRampToValueAtTime(to, t0 + dur);
-    g.gain.setValueAtTime(0.0001, t0);
-    g.gain.linearRampToValueAtTime(vol || .05, t0 + .01);
+    g.gain.setValueAtTime(0.0001, t0); g.gain.linearRampToValueAtTime(vol || .05, t0 + .01);
     g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-    o.connect(g); g.connect(c.destination);
-    o.start(t0); o.stop(t0 + dur + .03);
+    o.connect(g); g.connect(c.destination); o.start(t0); o.stop(t0 + dur + .03);
   } catch(e){}
 }
-var sndMove = function(){ tone(540, .06, "triangle", .035); };
+var sndMove = function(){ tone(540, .055, "triangle", .035); };
 var sndEdge = function(){ tone(190, .07, "sine", .03); };
 var sndMode = function(){ tone(360, .17, "sine", .05, 540); };
 var sndGo   = function(){ tone(460, .1, "sine", .06, 690); tone(690, .16, "sine", .045, 920, .07); };
 function toggleSound(){
-  SND.on = !SND.on;
-  $("#sndTag").classList.toggle("off", !SND.on);
+  SND.on = !SND.on; $("#sndTag").classList.toggle("off", !SND.on);
   try { localStorage.setItem("home.snd", SND.on ? "1" : "0"); } catch(e){}
   if (SND.on) sndMode();
 }
 
-function rgba(hex,a){
-  var n = parseInt(hex.slice(1),16);
-  return "rgba(" + ((n>>16)&255) + "," + ((n>>8)&255) + "," + (n&255) + "," + a + ")";
-}
-
-/* L'unita di misura segue la larghezza dello stage, non per forza la finestra:
-   cosi la stessa pagina gira a schermo intero sulla TV e dentro una cornice
-   in anteprima, senza due fogli di stile. */
-function sizeStage(){
-  var host = $("#stage");
-  document.documentElement.style.setProperty("--u", (host.clientWidth/1920)+"px");
-}
-
 /* ==========================================================================
-   RENDER
+   RIQUADRI
    ========================================================================== */
+function faceHTML(a){
+  if (a.logo) return '<img src="' + a.logo + '" alt="">';
+  if (a.icon && window.SI && SI[a.icon])
+    return '<svg viewBox="0 0 24 24"><path d="' + SI[a.icon] + '"/></svg>';
+  if (a.word) return '<span class="word">' + esc(a.word) + '</span>';
+  if (a.mark && a.word2)
+    return '<span class="word" style="display:flex;flex-direction:column;align-items:center">' +
+           MARKS[a.mark].replace("<svg ", '<svg style="width:2.1em;max-height:none" ') +
+           '<small>' + esc(a.word2) + '</small></span>';
+  if (a.mark) return MARKS[a.mark];
+  return '<span class="word">' + esc(a.name) + '</span>';
+}
+
 function renderModes(){
   [].slice.call(modesEl.querySelectorAll(".mode")).forEach(function(n){ n.remove(); });
-  $("#hints").innerHTML = "";
   MODES.forEach(function(m,i){
     var el = document.createElement("button");
-    el.type = "button";
-    el.className = "mode" + (i===modeIdx ? " on" : "");
-    el.id = "mode-" + m.id;
+    el.type = "button"; el.id = "mode-" + m.id;
+    el.className = "mode" + (i === modeIdx ? " on" : "");
     el.style.setProperty("--c", m.color);
     el.innerHTML = '<span class="dot"></span>' + m.label;
     el.addEventListener("click", function(){ setMode(i); });
     modesEl.appendChild(el);
-
-    var h = document.createElement("div");
-    h.className = "hint"; h.style.setProperty("--c", m.color);
-    h.innerHTML = "<i></i><b>" + m.label + "</b><span>" + (i+1) + "</span>";
-    $("#hints").appendChild(h);
   });
   moveThumb();
 }
-
 function moveThumb(){
-  var on = modesEl.querySelector(".mode.on");
-  if (!on) return;
+  var on = modesEl.querySelector(".mode.on"); if (!on) return;
   thumb.style.width = on.offsetWidth + "px";
   thumb.style.transform = "translate3d(" + on.offsetLeft + "px,0,0)";
   thumb.style.setProperty("--mc", MODES[modeIdx].color);
 }
 
-/* Una regola che riempie sempre la griglia, senza celle vuote e senza righe
-   fantasma: colonne = meta' dei tile arrotondata per eccesso, due righe. Con
-   un numero dispari il primo tile occupa due colonne e i conti tornano lo
-   stesso. La gerarchia viene dalla riga di sopra, piu alta, non da un buco.
-     4 -> 2x2    5 -> primo largo + 4    6 -> 3x2    7 -> primo largo + 6  */
-function layoutFor(n){
-  if (n <= 3) return { cols:n, rows:"1fr", span:false, big:n };
-  var cols = Math.ceil(n/2);
-  var span = (n % 2) === 1;
-  return { cols:cols, rows:"1.22fr 1fr", span:span, big: span ? cols-1 : cols };
-}
-
 function renderGrid(){
-  var m = MODES[modeIdx];
-  var list = m.tiles.map(function(k){ return SITES[k]; }).filter(Boolean);
-  var root = document.documentElement.style;
+  var m = MODES[modeIdx], root = document.documentElement.style;
   root.setProperty("--accent", m.color);
   root.setProperty("--accent-soft", rgba(m.color,.38));
   root.setProperty("--accent-tint", rgba(m.color,.15));
-  $("#modeName").textContent = "";
-
-  var lay = layoutFor(list.length);
-  grid.style.gridTemplateColumns = "repeat(" + lay.cols + ",1fr)";
-  grid.style.gridTemplateRows = lay.rows;
   grid.innerHTML = "";
-  tiles = list.map(function(s,i){
+  tiles = m.apps.map(function(k){ return APPS[k]; }).filter(Boolean).map(function(a,i){
     var t = document.createElement("div");
-    t.className = "tile" + (i < lay.big ? " lg" : "");
-    if (i===0 && lay.span) t.style.gridColumn = "span 2";
-    t.style.setProperty("--sc", s.color);
-    t.style.setProperty("--sc-bg", rgba(s.color,.30));
-    t.style.setProperty("--sc-tint", rgba(s.color,.16));
-    t.innerHTML =
-      (i < lay.big ? '<div class="ghost">'+art(s)+'</div>' : '') +
-      '<div class="sheen"></div>' +
-      '<div class="mark' + (s.logo ? ' file' : '') + '">' + art(s) + '</div>' +
-      '<div class="meta"><div class="name">' + s.name + '</div>' +
-      '<div class="sub">' + s.sub + '</div></div>' +
-      '<div class="ring"></div>';
-    t.__site = s;
-    t.addEventListener("mouseenter", function(){ tileIdx = i; paintFocus(); });
+    t.className = "tile";
+    t.style.setProperty("--bg", a.bg); t.style.setProperty("--fg", a.fg);
+    t.style.setProperty("--sc", a.color);
+    t.innerHTML = '<div class="face">' + faceHTML(a) + '<div class="shine"></div></div>' +
+                  '<div class="label">' + esc(a.name) + '</div>';
+    t.__app = a;
+    t.addEventListener("mouseenter", function(){ if (tileIdx !== i){ tileIdx = i; paintFocus(); } });
+    t.addEventListener("mousemove", function(e){ tilt(t, e); });
+    t.addEventListener("mouseleave", function(){ t.style.removeProperty("--rx"); t.style.removeProperty("--ry"); });
     t.addEventListener("click", function(){ tileIdx = i; paintFocus(); launch(); });
     grid.appendChild(t);
     return t;
   });
   if (tileIdx >= tiles.length) tileIdx = tiles.length - 1;
-  paintFocus();
+  paintFocus(true);
 }
 
-/* il file se c'e', altrimenti il segno disegnato */
-function art(s){
-  return s.logo ? '<img src="' + s.logo + '" alt="">' : MARKS[s.mark];
+/* col puntatore il riquadro a fuoco si inclina verso la mano, come su una tv box */
+function tilt(t, e){
+  if (!t.classList.contains("focus")) return;
+  var r = t.getBoundingClientRect();
+  var px = (e.clientX - r.left) / r.width - .5, py = (e.clientY - r.top) / r.height - .5;
+  t.style.setProperty("--ry", (px * 9).toFixed(2) + "deg");
+  t.style.setProperty("--rx", (-py * 9).toFixed(2) + "deg");
 }
 
-function paintFocus(){
-  tiles.forEach(function(t,i){ t.classList.toggle("focus", i===tileIdx); });
-  var s = tiles[tileIdx] && tiles[tileIdx].__site;
-  if (!s) return;
-  /* Il colore che andrebbe alle lampadine: il marchio a fuoco, temperato
-     dal colore della modalita. Lo schermo lo irradia dai bordi. */
-  spillTo(s.color);
-  $("#lampDot").style.background = s.color;
-  $("#lampDot").style.boxShadow = "0 0 calc(18*var(--u)) " + s.color;
-  $("#lampName").textContent = s.name.toLowerCase();
+var shelfTimer = null;
+function paintFocus(now){
+  tiles.forEach(function(t,i){ t.classList.toggle("focus", i === tileIdx); });
+  var t = tiles[tileIdx]; if (!t) return;
+  spillTo(t.__app.color);
+  scrollToFocus();
+  /* Il fuoco si sposta subito; lo scaffale aspetta un attimo, cosi' tenendo
+     premuta una freccia non si ricostruisce a ogni passo. */
+  clearTimeout(shelfTimer);
+  if (now) paintShelf(); else shelfTimer = setTimeout(paintShelf, 130);
 }
 
-/* Dipinge lo strato spento e poi scambia: nessuna interpolazione di ombre. */
 var spillTop = false;
 function spillTo(hex){
-  var up = spillTop ? $("#spillA") : $("#spillB");
-  var dn = spillTop ? $("#spillB") : $("#spillA");
-  up.style.boxShadow = "inset 0 0 calc(300*var(--u)) calc(-50*var(--u)) " + rgba(hex,.42);
-  up.classList.add("on"); dn.classList.remove("on");
-  spillTop = !spillTop;
+  var up = spillTop ? $("#spillA") : $("#spillB"), dn = spillTop ? $("#spillB") : $("#spillA");
+  up.style.boxShadow = "inset 0 0 calc(320*var(--u)) calc(-60*var(--u)) " + rgba(hex,.40);
+  up.classList.add("on"); dn.classList.remove("on"); spillTop = !spillTop;
+}
+
+/* Riga 0: si vede lo scaffale. Dalla riga 1 in giu' lo scaffale esce e la
+   riga a fuoco sale sotto la barra. Uno spostamento solo, su transform. */
+function scrollToFocus(){
+  var t = tiles[tileIdx]; if (!t) return;
+  var first = tiles[0].offsetTop, row = t.offsetTop - first;
+  var u = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--u")) || 1;
+  var y = row < 4 ? 0 : (grid.offsetTop + t.offsetTop - 64*u);
+  scrollEl.style.transform = "translate3d(0," + (-y) + "px,0)";
+  $("#shelf").classList.toggle("away", y > 0);
 }
 
 /* ==========================================================================
-   NAVIGAZIONE SPAZIALE
-   Sceglie il vicino guardando le posizioni reali, non gli indici: cosi la
-   griglia puo cambiare forma senza riscrivere la logica dei tasti.
+   SCAFFALE
+   ========================================================================== */
+function shelfItems(a){
+  if (!a.tvmaze) return [];
+  var out = [];
+  a.tvmaze.forEach(function(n){ (SHELF[n] || []).forEach(function(x){ out.push(x); }); });
+  return out;
+}
+function paintShelf(){
+  var t = tiles[tileIdx]; if (!t) return;
+  var a = t.__app, items = shelfItems(a);
+  var sh = $("#shelf");
+  sh.style.setProperty("--sc", a.color); sh.style.setProperty("--sc-mid", rgba(a.color,.42));
+  $("#shCapTxt").textContent = items.length
+    ? "Uscite della settimana" + (shelfIsSample ? " · esempio" : "")
+    : a.kind;
+  $("#shTitle").textContent = a.name;
+  $("#shSub").textContent = a.sub;
+
+  var row = $("#shRow"), max = document.documentElement.classList.contains("portrait") ? 4 : 6;
+  if (items.length){
+    row.innerHTML = items.slice(0, max).map(function(x){
+      return '<div class="poster">' +
+        (x.i ? '<img alt="" src="' + esc(x.i) + '" onload="this.className=\'ok\'" onerror="this.remove()">' : '') +
+        '<b>' + esc(x.n) + '</b>' + (x.e ? '<span>' + esc(x.e) + '</span>' : '') + '</div>';
+    }).join("");
+  } else {
+    row.innerHTML = '<div class="art" style="--bg:' + a.bg + ';--fg:' + a.fg + '">' + faceHTML(a) + '</div>';
+  }
+  [$("#shCopy"), row].forEach(function(n){ n.classList.remove("swap"); void n.offsetWidth; n.classList.add("swap"); });
+}
+
+/* TVMaze: gratuito, senza chiave. Si leggono gli ultimi 5 giorni di uscite in
+   streaming e si tengono solo i servizi che abbiamo, una serie una volta
+   sola. Il risultato ridotto resta in memoria 12 ore: sono 1,7 MB di JSON,
+   non vanno riscaricati a ogni avvio. */
+function loadShelf(){
+  var wanted = {};
+  Object.keys(APPS).forEach(function(k){ (APPS[k].tvmaze || []).forEach(function(n){ wanted[n] = 1; }); });
+  try {
+    var c = JSON.parse(localStorage.getItem("home.shelf") || "null");
+    if (c && Date.now() - c.t < 12*3600*1000){ SHELF = c.d; paintShelf(); return; }
+  } catch(e){}
+  if (!IS_TV){ useSample(); }
+  if (typeof fetch !== "function") return;
+
+  var acc = {}, seen = {}, day = 0, got = 0;
+  function next(){
+    if (day > 4){
+      if (got){ SHELF = acc; shelfIsSample = false;
+        try { localStorage.setItem("home.shelf", JSON.stringify({ t:Date.now(), d:acc })); } catch(e){}
+        paintShelf(); }
+      return;
+    }
+    var d = new Date(Date.now() - day*86400000), iso = d.toISOString().slice(0,10);
+    day++;
+    fetch("https://api.tvmaze.com/schedule/web?date=" + iso).then(function(r){ return r.json(); }).then(function(list){
+      (list || []).forEach(function(e){
+        var s = e && e._embedded && e._embedded.show; if (!s || seen[s.id]) return;
+        var ch = s.webChannel && s.webChannel.name; if (!ch || !wanted[ch]) return;
+        seen[s.id] = 1; got++;
+        (acc[ch] = acc[ch] || []).push({
+          n: s.name, i: s.image && s.image.medium ? s.image.medium.replace(/^http:/, "https:") : "",
+          e: (e.season && e.number) ? "S" + e.season + " · E" + e.number : "" });
+      });
+      /* si mostra subito cio' che c'e', senza aspettare tutti e cinque i giorni */
+      if (got){ SHELF = acc; shelfIsSample = false; paintShelf(); }
+      next();
+    }).catch(function(){ next(); });
+  }
+  setTimeout(next, 1200);
+}
+function useSample(){
+  SHELF = {}; shelfIsSample = true;
+  Object.keys(SAMPLE).forEach(function(k){ SHELF[k] = SAMPLE[k].map(function(n){ return { n:n, i:"", e:"" }; }); });
+  paintShelf();
+}
+
+/* ==========================================================================
+   NAVIGAZIONE SPAZIALE — guarda le posizioni reali, non gli indici
    ========================================================================== */
 function move(dx,dy){
   if (tiles.length < 2) return;
-  var a = tiles[tileIdx].getBoundingClientRect();
-  var overlap = [], cone = [];
-
+  var a = tiles[tileIdx].getBoundingClientRect(), overlap = [], cone = [];
   tiles.forEach(function(t,i){
     if (i === tileIdx) return;
     var b = t.getBoundingClientRect();
-    /* distanza fra i bordi nella direzione chiesta */
     var gap = dx ? (dx > 0 ? b.left - a.right : a.left - b.right)
                  : (dy > 0 ? b.top - a.bottom : a.top - b.bottom);
-    if (gap < -2) return;                       /* non e davvero in quella direzione */
-    /* si sovrappongono sull'asse trasversale? */
+    if (gap < -2) return;
     var over = dx ? Math.min(a.bottom,b.bottom) - Math.max(a.top,b.top)
                   : Math.min(a.right,b.right)  - Math.max(a.left,b.left);
     var ac = dx ? a.top + a.height/2 : a.left + a.width/2;
     var bc = dx ? b.top + b.height/2 : b.left + b.width/2;
     var drift = Math.abs(bc - ac);
-    if (over > 4) overlap.push({ i:i, score:gap*1000 + drift });
-    else          cone.push({ i:i, score:gap + drift*3 });
+    if (over > a.height * .3) overlap.push({ i:i, score:gap*1000 + drift });
+    else                      cone.push({ i:i, score:gap + drift*3 });
   });
-
-  /* I vicini allineati vincono sempre. Il cono serve solo quando non ce ne
-     sono: dal tile grande, "su" non deve scappare di lato. */
-  var pool = overlap.length ? overlap : cone;
+  /* i vicini allineati vincono; sull'ultima riga incompleta, "giu'" da una
+     colonna vuota scende comunque sull'ultimo riquadro */
+  var pool = overlap.length ? overlap : (dy > 0 ? cone : []);
   if (!pool.length){ sndEdge(); return; }
   pool.sort(function(p,q){ return p.score - q.score; });
   tileIdx = pool[0].i;
-  paintFocus();
-  sndMove();
+  var t = tiles[tileIdx]; t.style.removeProperty("--rx"); t.style.removeProperty("--ry");
+  paintFocus(); sndMove();
 }
 
 function setMode(i){
   if (i === modeIdx) return;
   modeIdx = i; tileIdx = 0;
   try { localStorage.setItem("home.mode", MODES[i].id); } catch(e){}
-  modesEl.querySelectorAll(".mode").forEach(function(n,k){
-    n.classList.toggle("on", k===i);
-  });
+  modesEl.querySelectorAll(".mode").forEach(function(n,k){ n.classList.toggle("on", k === i); });
   moveThumb(); renderGrid(); sndMode();
 }
 
 /* ==========================================================================
-   LANCIO — app nativa, poi browser della TV, poi l'URL qui dentro.
-   Guardia a 2,5s perche un tile non resti mai muto.
+   LANCIO
+   Prima l'app nativa (identificativo trovato sulla TV, poi quelli noti),
+   poi il browser della TV, poi l'indirizzo qui dentro. Guardia a 3 s.
    ========================================================================== */
+var toastT = null;
+function toast(txt){
+  var el = $("#toast"); el.textContent = txt; el.classList.add("on");
+  clearTimeout(toastT); toastT = setTimeout(function(){ el.classList.remove("on"); }, 2600);
+}
+function luna(){
+  return (window.webOS && window.webOS.service && window.webOS.service.request) ? window.webOS.service : null;
+}
 function launch(){
-  var s = tiles[tileIdx] && tiles[tileIdx].__site;
-  if (!s || !s.url) return;
-  var t = tiles[tileIdx];
+  var t = tiles[tileIdx], a = t && t.__app; if (!a) return;
   t.classList.remove("go"); void t.offsetWidth; t.classList.add("go");
   sndGo();
+  window.__H.launched.push(a.name);
 
-  /* i giochi stanno dentro il pacchetto: si aprono qui, dopo l'animazione */
-  if (s.internal){ setTimeout(function(){ location.href = s.url; }, 260); return; }
+  if (a.internal){ setTimeout(function(){ location.href = a.url; }, 240); return; }
+  var svc = luna();
+  if (!IS_TV || !svc){ toast("Sulla TV si apre " + a.name); return; }
 
-  var done = false;
-  function openWeb(){ if (done) return; done = true; location.href = s.url; }
-  var guard = setTimeout(openWeb, 2500);
-  function settled(){ clearTimeout(guard); done = true; }
-
-  var svc = (window.webOS && window.webOS.service && window.webOS.service.request)
-            ? window.webOS.service : null;
-  if (!svc){ openWeb(); return; }
-
-  function viaBrowser(){
-    try {
-      svc.request("luna://com.webos.applicationManager", {
-        method:"launch",
-        parameters:{ id:"com.webos.app.browser", params:{ target:s.url } },
-        onSuccess:settled, onFailure:openWeb
-      });
-    } catch(e){ openWeb(); }
+  var ids = (a.found ? [a.found] : []).concat(a.ids || []), done = false;
+  function finish(){ done = true; clearTimeout(guard); }
+  function web(){
+    if (done) return; finish();
+    if (a.url) location.href = a.url; else toast(a.name + " non è disponibile su questa TV");
   }
+  var guard = setTimeout(web, 3000);
+  function viaBrowser(){
+    if (!a.url){ web(); return; }
+    try {
+      svc.request("luna://com.webos.applicationManager", { method:"launch",
+        parameters:{ id:"com.webos.app.browser", params:{ target:a.url } },
+        onSuccess:finish, onFailure:web });
+    } catch(e){ web(); }
+  }
+  function tryId(k){
+    if (k >= ids.length){ viaBrowser(); return; }
+    try {
+      svc.request("luna://com.webos.applicationManager", { method:"launch",
+        parameters:{ id:ids[k], params:{} },
+        onSuccess:finish, onFailure:function(){ tryId(k + 1); } });
+    } catch(e){ tryId(k + 1); }
+  }
+  tryId(0);
+}
+
+/* Se la TV lo concede, si chiede l'elenco delle app installate e si
+   riconoscono le nostre dal nome: cosi' gli identificativi sono quelli veri
+   di questa TV. Se lo nega, restano quelli scritti in APPS. */
+function discover(){
+  var svc = luna(); if (!IS_TV || !svc) return;
   try {
-    if (s.appId){
-      svc.request("luna://com.webos.applicationManager", {
-        method:"launch", parameters:{ id:s.appId, params:{} },
-        onSuccess:settled, onFailure:viaBrowser
-      });
-    } else viaBrowser();
-  } catch(e){ openWeb(); }
+    svc.request("luna://com.webos.applicationManager", { method:"listLaunchPoints", parameters:{},
+      onSuccess:function(r){
+        var pts = (r && r.launchPoints) || [], n = 0;
+        Object.keys(APPS).forEach(function(k){
+          var a = APPS[k]; if (!a.find) return;
+          for (var i = 0; i < pts.length; i++){
+            var title = String(pts[i].title || "").toLowerCase();
+            if (a.find.some(function(f){ return title.indexOf(f) > -1; }) &&
+                !(k === "youtube" && title.indexOf("music") > -1)){ a.found = pts[i].id; n++; break; }
+          }
+        });
+        window.__H.found = n;
+      },
+      onFailure:function(){ window.__H.found = -1; } });
+  } catch(e){}
 }
 
 /* ==========================================================================
-   TASTI — telecomando (tasti colorati HbbTV) e tastiera
+   TASTI
    ========================================================================== */
 document.addEventListener("keydown", function(e){
   var k = e.keyCode;
-  /* il primo tasto dopo il riposo serve solo a svegliare */
-  if (wake()) { e.preventDefault(); return; }
-  for (var i=0;i<MODES.length;i++){
-    if (k === MODES[i].key || k === 49+i){ setMode(i); e.preventDefault(); return; }
+  if (wake()){ e.preventDefault(); return; }
+  for (var i = 0; i < MODES.length; i++){
+    if (k === MODES[i].key || k === 49 + i){ setMode(i); e.preventDefault(); return; }
   }
   switch(k){
     case 37: move(-1,0); break;
@@ -655,151 +740,113 @@ document.addEventListener("keydown", function(e){
     case 40: move(0,1);  break;
     case 13: launch();   break;
     case 48: cyclePerf(); break;
-    case 77: toggleSound(); break;   /* M: suono */
-    case 461: case 27: break;   /* indietro: la Home resta */
+    case 77: toggleSound(); break;
+    case 461: case 27:                       /* indietro: si torna in cima */
+      if (tileIdx !== 0){ tileIdx = 0; paintFocus(); sndMove(); } break;
     default: return;
   }
   e.preventDefault();
 }, false);
 
 /* ==========================================================================
-   RIPOSO — dopo qualche minuto resta lo sfondo con l'ora.
+   RIPOSO, OROLOGIO, METEO
    ========================================================================== */
 var IDLE_MS = 4*60*1000, idleT = null;
 function wake(){
   var was = document.documentElement.classList.contains("idle");
   document.documentElement.classList.remove("idle");
   clearTimeout(idleT);
-  idleT = setTimeout(function(){
-    document.documentElement.classList.add("idle");
-  }, IDLE_MS);
+  idleT = setTimeout(function(){ document.documentElement.classList.add("idle"); }, IDLE_MS);
   return was;
 }
-
-/* ==========================================================================
-   OROLOGIO E SALUTO
-   ========================================================================== */
 function tick(){
-  var d = new Date(), h = d.getHours();
-  $("#clock").textContent = ("0"+h).slice(-2) + ":" + ("0"+d.getMinutes()).slice(-2);
-  try {
-    $("#date").textContent = d.toLocaleDateString("it-IT",
-      { weekday:"long", day:"numeric", month:"long" });
-  } catch(e){ $("#date").textContent = d.toDateString(); }
+  var d = new Date();
+  $("#clock").textContent = ("0"+d.getHours()).slice(-2) + ":" + ("0"+d.getMinutes()).slice(-2);
+  try { $("#date").textContent = d.toLocaleDateString("it-IT", { weekday:"long", day:"numeric", month:"long" }); }
+  catch(e){ $("#date").textContent = d.toDateString(); }
   $("#saverClock").textContent = $("#clock").textContent;
   $("#saverDate").textContent = $("#date").textContent;
-  $("#greet").firstChild.nodeValue =
-    h < 5  ? "Ancora sveglio" :
-    h < 12 ? "Buongiorno"     :
-    h < 18 ? "Buon pomeriggio":
-             "Buonasera";
 }
-
-/* ==========================================================================
-   METEO — Open-Meteo: gratuito, senza chiave, senza registrazione.
-   Se la rete non risponde (o in anteprima, dove le chiamate esterne sono
-   bloccate) resta un valore d'esempio invece di un buco nel layout.
-   ========================================================================== */
-var WX = {
-  0:["sereno","sun"], 1:["poco nuvoloso","sun"], 2:["nuvole sparse","cloud"],
-  3:["coperto","cloud"], 45:["nebbia","cloud"], 48:["nebbia","cloud"],
-  51:["pioviggine","rain"], 53:["pioviggine","rain"], 55:["pioviggine","rain"],
-  61:["pioggia debole","rain"], 63:["pioggia","rain"], 65:["pioggia forte","rain"],
-  71:["neve","snow"], 73:["neve","snow"], 75:["neve forte","snow"],
-  80:["rovesci","rain"], 81:["rovesci","rain"], 82:["rovesci forti","rain"],
-  95:["temporale","storm"], 96:["temporale","storm"], 99:["temporale","storm"]
-};
+var WX = { 0:["sereno","sun"], 1:["poco nuvoloso","sun"], 2:["nuvole sparse","cloud"], 3:["coperto","cloud"],
+  45:["nebbia","cloud"], 48:["nebbia","cloud"], 51:["pioviggine","rain"], 53:["pioviggine","rain"],
+  55:["pioviggine","rain"], 61:["pioggia debole","rain"], 63:["pioggia","rain"], 65:["pioggia forte","rain"],
+  71:["neve","snow"], 73:["neve","snow"], 75:["neve forte","snow"], 80:["rovesci","rain"], 81:["rovesci","rain"],
+  82:["rovesci forti","rain"], 95:["temporale","storm"], 96:["temporale","storm"], 99:["temporale","storm"] };
 var WXI = {
   sun:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.4v2.1M12 19.5v2.1M4.2 4.2l1.5 1.5M18.3 18.3l1.5 1.5M2.4 12h2.1M19.5 12h2.1M4.2 19.8l1.5-1.5M18.3 5.7l1.5-1.5"/></svg>',
   cloud:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18.5h10.2a3.8 3.8 0 0 0 .3-7.6 5.6 5.6 0 0 0-10.8-1.3A4.4 4.4 0 0 0 7 18.5z"/></svg>',
   rain:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 15.5h10.2a3.8 3.8 0 0 0 .3-7.6A5.6 5.6 0 0 0 6.7 6.6 4.4 4.4 0 0 0 7 15.5z"/><path d="M9 18.4l-.8 2.4M13 18.4l-.8 2.4M17 18.4l-.8 2.4"/></svg>',
   snow:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3.6v16.8M5 7.5l14 9M19 7.5l-14 9"/></svg>',
-  storm:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 14.6h10.2a3.8 3.8 0 0 0 .3-7.6A5.6 5.6 0 0 0 6.7 5.7 4.4 4.4 0 0 0 7 14.6z"/><path d="M12.6 16.4l-2.2 3.3h2.9l-1.6 2.6"/></svg>'
-};
+  storm:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 14.6h10.2a3.8 3.8 0 0 0 .3-7.6A5.6 5.6 0 0 0 6.7 5.7 4.4 4.4 0 0 0 7 14.6z"/><path d="M12.6 16.4l-2.2 3.3h2.9l-1.6 2.6"/></svg>' };
 function setWeather(temp,label,icon){
   $("#wxTemp").innerHTML = Math.round(temp) + "&deg;";
   $("#wxDesc").textContent = label;
   $("#wxIcon").innerHTML = WXI[icon] || WXI.cloud;
 }
 function loadWeather(){
-  setWeather(17,"nuvole sparse","cloud");   /* valore d'esempio finche non risponde */
-  var u = "https://api.open-meteo.com/v1/forecast?latitude=" + PLACE.lat +
-          "&longitude=" + PLACE.lon + "&current=temperature_2m,weather_code&timezone=auto";
+  if (!IS_TV) setWeather(17, "nuvole sparse", "cloud");      /* esempio in anteprima */
+  if (typeof fetch !== "function") return;
   try {
-    fetch(u).then(function(r){ return r.json(); }).then(function(j){
-      var c = j && j.current; if (!c) return;
-      var w = WX[c.weather_code] || ["—","cloud"];
-      setWeather(c.temperature_2m, w[0], w[1]);
-    }).catch(function(){});
+    fetch("https://api.open-meteo.com/v1/forecast?latitude=" + PLACE.lat + "&longitude=" + PLACE.lon +
+          "&current=temperature_2m,weather_code&timezone=auto")
+      .then(function(r){ return r.json(); }).then(function(j){
+        var c = j && j.current; if (!c) return;
+        var w = WX[c.weather_code] || ["", "cloud"]; setWeather(c.temperature_2m, w[0], w[1]);
+      }).catch(function(){});
   } catch(e){}
 }
 
 /* ==========================================================================
-   RESA — misura gli FPS veri e sceglie il livello da sola
+   RESA — se la TV fatica, lo sfondo si ferma. Il tasto 0 lo decide a mano.
    ========================================================================== */
-var LEVELS = ["glass","full","static"];
+var LEVELS = ["glass","static"], LEVEL_NAME = { glass:"animato", static:"fermo" };
 function setPerf(level,note){
   document.documentElement.setAttribute("data-perf", level);
-  $("#perfTag").textContent = level + (note ? " · " + note : "");
+  $("#perfTag").textContent = note ? LEVEL_NAME[level] + " · " + note : "";
   try { localStorage.setItem("home.perf", level); } catch(e){}
 }
 function cyclePerf(){
   var cur = document.documentElement.getAttribute("data-perf");
-  setPerf(LEVELS[(LEVELS.indexOf(cur)+1) % LEVELS.length], "manuale");
-}
-function measureFps(ms,cb){
-  var f = 0, t0 = 0;
-  function step(t){ if(!t0) t0 = t; f++;
-    (t-t0 < ms) ? requestAnimationFrame(step) : cb(f*1000/(t-t0)); }
-  requestAnimationFrame(step);
+  setPerf(LEVELS[(LEVELS.indexOf(cur) + 1) % LEVELS.length], "manuale");
 }
 function autoTune(){
-  setPerf("glass","misuro");
-  measureFps(1500, function(a){
-    window.__fpsGlass = Math.round(a);
-    if (a < 26){ setPerf("static","auto"); return; }
-    if (a < 52){ setPerf("glass","auto");  return; }
-    setPerf("full","provo");
-    measureFps(1500, function(b){
-      window.__fpsFull = Math.round(b);
-      setPerf(b < 46 ? "glass" : "full", "auto");
-    });
+  var f = 0, t0 = 0;
+  requestAnimationFrame(function step(t){
+    if (!t0) t0 = t; f++;
+    if (t - t0 < 1500) requestAnimationFrame(step);
+    else { var fps = f*1000/(t - t0); window.__H.fps = Math.round(fps); if (fps < 26) setPerf("static","auto"); }
   });
 }
 
 /* ==========================================================================
    AVVIO
    ========================================================================== */
+window.__H = { launched:[], found:0, fps:0,
+  get focus(){ return tiles[tileIdx] && tiles[tileIdx].__app.name; },
+  get count(){ return tiles.length; }, get shelf(){ return SHELF; } };
+
 (function init(){
   sizeStage();
-  window.addEventListener("resize", function(){ sizeStage(); moveThumb(); });
-
+  window.addEventListener("resize", function(){ sizeStage(); moveThumb(); scrollToFocus(); paintShelf(); });
   try {
     var saved = localStorage.getItem("home.mode");
-    if (saved) MODES.forEach(function(m,i){ if (m.id===saved) modeIdx = i; });
+    if (saved) MODES.forEach(function(m,i){ if (m.id === saved) modeIdx = i; });
+    if (localStorage.getItem("home.snd") === "0"){ SND.on = false; $("#sndTag").classList.add("off"); }
   } catch(e){}
 
-  try {
-    if (localStorage.getItem("home.snd") === "0"){
-      SND.on = false; $("#sndTag").classList.add("off");
-    }
-  } catch(e){}
-
-  renderModes(); renderGrid(); tick(); loadWeather(); wake();
-  document.addEventListener("mousemove", wake, { passive:true });
-  document.addEventListener("click", wake, { passive:true });
+  renderModes(); renderGrid(); tick(); loadWeather(); loadShelf(); discover(); wake();
   setInterval(tick, 15000);
   setInterval(loadWeather, 15*60*1000);
+  document.addEventListener("mousemove", wake, { passive:true });
+  document.addEventListener("click", wake, { passive:true });
 
   var sp = null;
   try { sp = localStorage.getItem("home.perf"); } catch(e){}
-  if (sp && LEVELS.indexOf(sp) > -1) setPerf(sp, null);
-  else setTimeout(autoTune, 700);
+  if (sp === "static") setPerf("static", null); else setTimeout(autoTune, 900);
 
   document.body.setAttribute("tabindex","-1");
   try { window.focus(); document.body.focus(); } catch(e){}
-  /* i font cambiano le larghezze: ricolloca l'indicatore quando sono pronti */
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(moveThumb);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(function(){ moveThumb(); scrollToFocus(); });
 })();
 </script>
 </body>

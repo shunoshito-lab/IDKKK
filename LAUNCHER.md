@@ -8,6 +8,7 @@ niente Homebrew: solo Developer Mode ufficiale.
 ```
 launcher/
   index.html        la Home intera: nessuna dipendenza oltre ai font Google
+  icons.js          le icone da Simple Icons (CC0), generate da make-icons.js
   logos/            i tuoi file logo, opzionali
   tennis.html       il gioco
   lib/              PeerJS e generatore QR, entrambi MIT
@@ -53,7 +54,8 @@ Il pacchetto è già in `dist/`, verificato: struttura corretta, nessun warning.
 | OK | apri |
 | Rosso / Verde / Giallo / Blu (403–406) | Coppia / Amici / Stress-free / Tutti |
 | 1 – 4 | le stesse modalità, da tastiera |
-| 0 | cicla i livelli grafici a mano |
+| 0 | sfondo animato / fermo |
+| Indietro | torna al primo riquadro |
 | M | suono acceso / spento |
 | *(nel Tennis)* OK | colpisci |
 | *(nel Tennis)* ◀ ▶ | mira, tenuti premuti |
@@ -80,32 +82,14 @@ pacchetto da soli.
 Nel pacchetto non ci sono marchi di terzi: i segni disegnati sono forme
 originali.
 
-## I tre livelli grafici — e perché
+## Resa
 
-| livello | cosa fa |
-|---|---|
-| **glass** (default) | vetro traslucido "cotto", orbe + nastri + polvere animati |
-| **full** (opt-in) | glass + `backdrop-filter` vero |
-| **static** (fallback) | tutto fermo, pannelli più opachi |
+Regola di tutto il file: si animano **solo `transform` e `opacity`**. Ombre,
+bordi di luce e alone sono disegnati una volta e si accendono in dissolvenza;
+l'alone ai bordi sono due strati che si scambiano. Nessun `backdrop-filter`.
 
-Il collo di bottiglia non è un singolo effetto: è `backdrop-filter` **sopra uno
-sfondo in movimento**, insieme a `mix-blend-mode`. Quella coppia impedisce alla
-GPU di promuovere i layer, quindi ogni frame rifà il blur dell'intera area.
-
-La Home quindi **non usa blur per frame**. I pannelli sono traslucidi: gli orbe
-si vedono comunque passare sotto, quindi il movimento resta — cade solo la
-rifrazione, che era la parte costosa. Luce, profondità e anello di focus sono
-gradienti e ombre dipinti *una volta*.
-
-Regole rispettate in tutto il file, verificate dai test:
-- si anima **solo `transform` e `opacity`**: mai il layout, mai un'ombra
-- il focus accende un anello pre-disegnato via `opacity`. Transizionare
-  `box-shadow` significava ripitturare il tile a ogni freccia premuta
-- stessa cosa per l'alone ai bordi: due strati che si incrociano in opacity,
-  invece di interpolare un'ombra grande quanto lo schermo
-- la sfocatura degli orbe è *dentro* il radial-gradient, non in un `filter`;
-  i nastri sfumano con un gradiente ellittico invece che con una `mask-image`,
-  che costava un passaggio di composizione per frame
+Se all'avvio la TV sta sotto i 26 fotogrammi al secondo, lo sfondo si ferma
+da solo. Il tasto `0` lo decide a mano.
 
 ### Sui numeri di FPS
 
@@ -115,33 +99,82 @@ da 21 a 41 FPS**. A quel livello di rumore i confronti fini non dicono nulla:
 un benchmark per-livello dava "più veloce" a configurazioni con *più* roba
 accesa, che è impossibile.
 
-Regge solo il confronto grosso, ripetuto sei volte per parte:
+Reggeva solo il confronto grosso, ripetuto sei volte per parte, tra la
+prima versione col vetro traslucido (`glass`) e quella con il blur vero (`full`):
 
 ```
 glass  [22, 22, 23, 24, 24, 37]   mediana 24
 full   [12, 13, 13, 13, 13, 14]   mediana 13
 ```
 
-Il peggior `glass` batte il miglior `full`. È su questo che si fonda la
-scelta di togliere il blur dal percorso per frame — non su una cifra precisa.
-**Il numero vero si misura sulla TV**, dove la GPU è dedicata e stabile:
-all'avvio la Home misura gli FPS reali, parte da `glass`, prova `full` solo se
-la TV è comoda e torna indietro se non regge. Col tasto `0` decidi tu.
+Il peggior `glass` batteva il miglior `full`. È da lì che viene la scelta di
+non usare mai il blur per frame; l'impianto attuale non lo prevede proprio.
+**Il numero vero si misura sulla TV**, dove la GPU è dedicata e stabile.
 
-## Griglia
+## Impianto
 
-Una regola sola riempie sempre la griglia, senza celle vuote né righe
-fantasma: colonne = metà dei tile arrotondata per eccesso, due righe; con un
-numero dispari il primo tile occupa due colonne e i conti tornano lo stesso.
-La gerarchia viene dalla riga superiore, più alta, non da un buco.
+Da tv box: in alto lo **scaffale**, sotto i **riquadri** 16:9 delle app.
 
-```
-4 tile -> 2x2     5 -> primo largo + 4     6 -> 3x2     7 -> primo largo + 6
-```
+Il riquadro a fuoco si solleva, prende un bordo di luce e mostra il nome; col
+puntatore del Magic Remote si inclina verso la mano. Lo scaffale racconta
+l'app a fuoco: nome, una riga di descrizione e, quando ci sono, le **uscite
+della settimana** con le locandine. Per le app senza uscite mostra il
+riquadro in grande. Dalla seconda riga in giù lo scaffale esce e le righe
+scorrono; **Indietro** riporta in cima.
+
+Il fuoco si sposta subito; lo scaffale si aggiorna 130 ms dopo, così tenendo
+premuta una freccia non si ricostruisce a ogni passo.
 
 La navigazione è **spaziale**: sceglie il vicino guardando le posizioni reali
-degli elementi, preferendo quelli allineati e usando un cono stretto solo
-quando non ce ne sono. Il layout può cambiare forma senza toccare i tasti.
+dei riquadri, quindi regge qualunque numero di app e l'ultima riga incompleta.
+
+Su uno schermo verticale (l'anteprima sul telefono) la stessa pagina passa a
+3 colonne e lo scaffale va in colonna.
+
+## App
+
+21 app, definite in `APPS` in cima allo script; le quattro modalità ne
+scelgono un sottoinsieme e l'ordine in `MODES`.
+
+**Icone.** Dieci arrivano da [Simple Icons](https://simpleicons.org)
+(licenza CC0), estratte da `make-icons.js` in `launcher/icons.js`. I servizi
+che nella raccolta non ci sono (Prime Video, Disney+, RaiPlay, Infinity,
+Pluto TV) hanno il nome scritto sul loro colore. Un tuo file in `logos/`
+vince su tutto: basta `logo:"logos/nome.png"` nella voce.
+
+**Come si aprono.** In ordine: l'identificativo letto dalla TV, quelli
+scritti in `ids`, il browser della TV sull'indirizzo `url`, e infine
+l'indirizzo dentro la Home. Guardia a 3 secondi; se non c'è nemmeno un
+indirizzo (ingressi HDMI, TV dal vivo) compare un avviso.
+
+| identificativo | stato |
+|---|---|
+| `netflix`, `amazon` (Prime Video), `youtube.leanback.v4`, `com.apple.appletv`, `com.disney.disneyplus-prod` | confermati da fonti esterne |
+| `spotify-beehive`, `tv.twitch.tv.starshot.lg`, `dazn`, `com.webos.app.livetv`, `com.webos.app.hdmi1/2`, `com.webos.app.browser` | plausibili, **non confermati** |
+| RaiPlay, Infinity, Pluto TV, NOW, Paramount+, Crunchyroll, YouTube Music | nessuno: si aprono nel browser, salvo riconoscimento |
+
+All'avvio la Home chiede alla TV l'elenco delle app installate
+(`listLaunchPoints`) e riconosce le sue dal nome: se la TV lo concede, gli
+identificativi diventano quelli veri di questa TV e la tabella non conta
+più. Se lo nega — probabile per un'app di terze parti — restano quelli
+scritti. **Da verificare sulla TV:** webOS può anche negare a un'app di terze
+parti il lancio delle altre; in quel caso tutto ripiega sul browser.
+
+Le app che non hai installato o a cui non sei abbonato si tolgono dall'elenco
+della modalità in `MODES`.
+
+## Uscite della settimana
+
+[TVMaze](https://www.tvmaze.com/api): gratuita, senza chiave. Si leggono gli
+ultimi 5 giorni di uscite in streaming (1,7 MB di JSON), si tengono solo i
+servizi presenti in `APPS` e ogni serie una volta sola; il risultato ridotto
+(circa 8 KB) resta in memoria 12 ore. Lo scaffale si riempie man mano che i
+giorni arrivano. In una prova su cinque giorni: 8 serie per Netflix, 8 per
+Prime Video, 3 per Apple TV, 5 per Paramount+.
+
+Sono le uscite mondiali del servizio, non il catalogo italiano: qualche
+titolo potrebbe non esserci in Italia. Le locandine non portano dentro l'app
+al titolo: l'apertura è sempre quella dell'app.
 
 ## Meteo
 
@@ -203,19 +236,6 @@ sparito, da cui il battito.
 **Non verificati:** WebRTC sul browser di webOS 25 e i sensori di un
 telefono vero. Se uno dei due manca, resta il telecomando.
 
-## Come apre i siti
-
-Tre tentativi in cascata, con guardia di 2,5s perché un tile non resti mai morto:
-
-1. app nativa webOS (`youtube.leanback.v4` per YouTube)
-2. browser della TV (`com.webos.app.browser`)
-3. l'URL dentro la Home stessa
-
-**Da verificare sulla TV:** webOS limita il lancio di altre app dalle app di
-terze parti. Se i passi 1 e 2 vengono negati, si cade sul 3 — che funziona, ma
-i siti con DRM dentro la nostra webview possono essere zoppi. Lo sapremo al
-primo `ares-launch`; il piano B è tenere i tile sul browser di sistema.
-
 ## Da sistemare
 
 - `PLACE` è impostato su Roma: va messa la città giusta per il meteo.
@@ -224,6 +244,4 @@ primo `ares-launch`; il piano B è tenere i tile sul browser di sistema.
 
 ## Modificare i contenuti
 
-Tutto in cima allo `<script>` di `index.html`: `SITES` (nome, sottotitolo,
-colore, glifo, url, appId) e `MODES` (etichetta, tasto colorato, colore,
-elenco tile). La griglia è a 3 colonne e si adatta al numero di tile.
+Tutto in cima allo `<script>` di `index.html`: `APPS` e `MODES`.

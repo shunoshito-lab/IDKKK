@@ -6,7 +6,9 @@ const src = fs.readFileSync('launcher/index.html', 'utf8');
 
 const head = src.slice(src.indexOf('<title>'), src.indexOf('</head>'));
 const body = src.slice(src.indexOf('<body>') + 6, src.indexOf('</body>'))
-                .replace(/<script src="webOSTV\.js"><\/script>\s*/, '');
+                .replace(/<script src="webOSTV\.js"><\/script>\s*/, '')
+                .replace(/<script src="icons\.js"><\/script>/,
+                         '<script>' + fs.readFileSync('launcher/icons.js', 'utf8') + '</script>');
 
 const chrome = `
 <meta name="claude:viewport-fit-sides" content="cover">
@@ -30,6 +32,8 @@ body{font-family:var(--ui);color:var(--ink);
   border:1px solid rgba(255,255,255,.1);
   box-shadow:0 30px 70px -30px rgba(0,0,0,.9),0 0 0 1px rgba(255,255,255,.04)}
 .tv #stage{position:absolute;inset:0}
+/* sul telefono la cornice diventa verticale e la Home si ridispone da sola */
+@media (max-width:640px){ .tv{aspect-ratio:9/15} }
 .legend{display:flex;flex-wrap:wrap;gap:clamp(8px,1.4vw,14px);
   font-size:clamp(11px,1.4vw,13px);color:var(--ink-3);min-width:0}
 .legend b{color:var(--ink-2);font-weight:500}
@@ -61,13 +65,13 @@ ${body}
     <span><b>Frecce</b> <kbd>&larr;</kbd><kbd>&uarr;</kbd><kbd>&darr;</kbd><kbd>&rarr;</kbd> muovi</span>
     <span><b>Invio</b> apri</span>
     <span><b>1&ndash;4</b> cambia modalit&agrave;</span>
-    <span><b>0</b> livello grafico</span>
+    <span><b>M</b> suono</span>
     <span>oppure tocca i riquadri</span>
   </div>
   <p class="note">Sul telecomando le quattro modalit&agrave; stanno sui tasti colorati.
-  Il colore in basso a destra &egrave; quello che andrebbe alle luci dietro la TV.
-  Il meteo qui mostra un valore d&rsquo;esempio: l&rsquo;anteprima non pu&ograve; chiamare
-  servizi esterni, sulla TV arriva da Open-Meteo.</p>
+  Qui meteo e uscite della settimana sono esempi: l&rsquo;anteprima non pu&ograve; chiamare
+  servizi esterni n&eacute; aprire le app. Sulla TV arrivano da Open-Meteo e TVMaze,
+  con le locandine, e i riquadri aprono le app vere.</p>
 </div>
 </body>
 </html>`;
