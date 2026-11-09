@@ -29,6 +29,11 @@
   --display:"Bricolage Grotesque","Trebuchet MS",system-ui,sans-serif;
   --ui:"Archivo","Helvetica Neue",Helvetica,Arial,sans-serif;
   --u:calc(100vw / 1920);           /* 1u = 1/1920 della larghezza, da JS */
+  /* Movimento: un carattere solo, "premium". Una curva per quasi tutto, tre
+     durate, entrate che decelerano. Niente rimbalzi: e' vetro, non gomma. */
+  --ease:cubic-bezier(.4,0,.2,1);
+  --enter:cubic-bezier(.05,.7,.1,1);
+  --quick:.14s; --std:.32s; --slow:.6s;
   --safe:calc(84 * var(--u));
   --cols:6;
 }
@@ -42,6 +47,16 @@ body{font-family:var(--ui);color:var(--ink);-webkit-font-smoothing:antialiased}
 /* ---------- sfondo ------------------------------------------------------ */
 #sky{position:absolute;inset:0;z-index:0;
   background:radial-gradient(140% 100% at 50% -10%, #121a36 0%, #06070e 60%)}
+/* Lo sfondo vero e' uno shader su una tela piccola, ingrandita dal browser:
+   un colore che scorre e' liscio, quindi a un quarto della risoluzione e'
+   identico e costa un sedicesimo. Le sfere restano come riserva se WebGL
+   non c'e'. */
+#gl{position:absolute;inset:0;width:100%;height:100%;display:block;opacity:0;
+  transition:opacity 1.4s var(--ease)}
+html.gl #gl{opacity:1}
+html.gl .orb{display:none}
+#grain{position:absolute;inset:0;pointer-events:none;z-index:1;opacity:.07;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .9 0'/></filter><rect width='160' height='160' filter='url(%23n)'/></svg>")}
 .orb{position:absolute;border-radius:50%;will-change:transform;transform:translate3d(0,0,0)}
 .o1{width:calc(1240*var(--u));height:calc(1240*var(--u));left:-14%;top:-30%;
   background:radial-gradient(circle at 50% 50%, var(--accent) 0%,
@@ -87,21 +102,47 @@ body{font-family:var(--ui);color:var(--ink);-webkit-font-smoothing:antialiased}
 html.idle #app{opacity:0;pointer-events:none}
 html.idle #saver{opacity:1}
 
+/* ---------- vetro -------------------------------------------------------
+   Come lo descrive Apple: un materiale traslucido che prende i colori di
+   cio' che ha dietro, con un bordo di luce in alto e, vicino ai bordi curvi,
+   lo sfondo che si piega come in una lente.
+   Qui: sfocatura e saturazione con backdrop-filter, bordo speculare con ombre
+   interne, e la lente con un filtro SVG di spostamento (solo dove il browser
+   lo sa fare e la TV regge). Il vetro sta solo su superfici piccole: la
+   sfocatura di uno sfondo che si muove si ricalcola a ogni fotogramma, e
+   costa in proporzione all'area. */
+.glass{
+  background:linear-gradient(180deg,rgba(255,255,255,.17),rgba(255,255,255,.05));
+  -webkit-backdrop-filter:blur(calc(24*var(--u))) saturate(185%) brightness(1.06);
+  backdrop-filter:blur(calc(24*var(--u))) saturate(185%) brightness(1.06);
+  box-shadow:
+    inset 0 calc(1.5*var(--u)) 0 rgba(255,255,255,.55),
+    inset 0 calc(-1*var(--u)) 0 rgba(255,255,255,.14),
+    inset 0 0 0 1px rgba(255,255,255,.12),
+    inset 0 calc(12*var(--u)) calc(18*var(--u)) calc(-12*var(--u)) rgba(255,255,255,.2),
+    0 calc(14*var(--u)) calc(34*var(--u)) calc(-14*var(--u)) rgba(0,0,0,.6)}
+html[data-perf="liquid"].lens #modes{
+  -webkit-backdrop-filter:url(#lens) blur(calc(9*var(--u))) saturate(185%) brightness(1.06);
+  backdrop-filter:url(#lens) blur(calc(9*var(--u))) saturate(185%) brightness(1.06)}
+html[data-perf="static"] .glass{-webkit-backdrop-filter:none;backdrop-filter:none;
+  background:linear-gradient(180deg,rgba(40,46,66,.9),rgba(22,26,40,.9))}
+
 /* ---------- barra in alto ----------------------------------------------- */
 #bar{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;
   gap:calc(30*var(--u));padding:calc(40*var(--u)) var(--safe) calc(18*var(--u))}
 #date{font-size:calc(22*var(--u));color:var(--ink-2);text-transform:capitalize;font-weight:500}
-.right{display:flex;align-items:center;justify-content:flex-end;gap:calc(24*var(--u))}
+.right{display:flex;align-items:center;justify-self:end;gap:calc(22*var(--u));
+  height:calc(60*var(--u));padding:0 calc(24*var(--u));border-radius:999px}
 .wx{display:flex;align-items:center;gap:calc(9*var(--u));font-size:calc(22*var(--u));color:var(--ink-2)}
 .wx svg{width:calc(26*var(--u));height:calc(26*var(--u))}
 .wx b{font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
 #clock{font-family:var(--display);font-size:calc(40*var(--u));font-weight:700;
   font-variant-numeric:tabular-nums;letter-spacing:-.02em;line-height:1}
 #modes{position:relative;display:inline-flex;gap:calc(4*var(--u));padding:calc(5*var(--u));
-  border-radius:999px;background:rgba(10,13,23,.55);border:1px solid var(--line)}
+  border-radius:999px}
 #thumb{position:absolute;top:calc(5*var(--u));left:0;height:calc(50*var(--u));border-radius:999px;
   background:var(--mc);box-shadow:0 0 calc(30*var(--u)) var(--mc);
-  transition:transform .3s cubic-bezier(.3,.9,.3,1),width .3s cubic-bezier(.3,.9,.3,1),background .3s ease;
+  transition:transform var(--std) var(--ease),width var(--std) var(--ease),background var(--std) ease;
   will-change:transform,width}
 .mode{position:relative;z-index:1;display:flex;align-items:center;gap:calc(10*var(--u));
   height:calc(50*var(--u));padding:0 calc(24*var(--u));border-radius:999px;
@@ -163,7 +204,10 @@ html.idle #saver{opacity:1}
   column-gap:calc(34*var(--u));row-gap:calc(78*var(--u));padding-bottom:calc(420*var(--u))}
 .tile{position:relative;aspect-ratio:16/9;border-radius:calc(30*var(--u));
   transform:translateZ(0);
-  transition:transform .18s cubic-bezier(.2,.8,.2,1);will-change:transform}
+  transition:transform .2s var(--enter);will-change:transform}
+/* entrata a cascata al cambio di modalita': parte dall'angolo, 28 ms a passo */
+.tile.in{animation:rise .36s var(--enter) backwards;animation-delay:var(--d,0s)}
+@keyframes rise{from{opacity:0;transform:translate3d(0,calc(28*var(--u)),0) scale(.94)}}
 /* ombra e bordo di luce: disegnati una volta, si accendono con l'opacity */
 .tile::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
   box-shadow:0 0 0 calc(3*var(--u)) rgba(255,255,255,.92),
@@ -172,7 +216,9 @@ html.idle #saver{opacity:1}
   opacity:0;transition:opacity .18s ease;will-change:opacity}
 .face{position:absolute;inset:0;border-radius:inherit;overflow:hidden;background:var(--bg);
   display:flex;align-items:center;justify-content:center;
-  box-shadow:inset 0 0 0 1px rgba(255,255,255,.09)}
+  box-shadow:inset 0 calc(1.5*var(--u)) 0 rgba(255,255,255,.3),
+             inset 0 0 0 1px rgba(255,255,255,.09),
+             inset 0 calc(-16*var(--u)) calc(24*var(--u)) calc(-16*var(--u)) rgba(0,0,0,.34)}
 .face svg{width:32%;height:auto;max-height:58%;color:var(--fg);fill:currentColor;display:block}
 .face svg.line{fill:none}
 .face img{width:62%;height:62%;object-fit:contain;display:block}
@@ -180,12 +226,24 @@ html.idle #saver{opacity:1}
   letter-spacing:-.025em;line-height:1;text-align:center;padding:0 calc(14*var(--u))}
 .word small{display:block;font-family:var(--ui);font-weight:600;font-size:.42em;letter-spacing:.2em;
   text-transform:uppercase;opacity:.75;margin-top:.5em}
-.shine{position:absolute;inset:0;border-radius:inherit;pointer-events:none;
-  background:linear-gradient(125deg,rgba(255,255,255,.32),rgba(255,255,255,0) 44%);
+.shine{position:absolute;inset:0;border-radius:inherit;pointer-events:none;overflow:hidden;
+  background:linear-gradient(125deg,rgba(255,255,255,.3),rgba(255,255,255,0) 44%);
   opacity:0;transition:opacity .18s ease}
+/* il riflesso reagisce al movimento: quando il fuoco arriva, una lama di
+   luce attraversa il riquadro una volta */
+.shine::after{content:"";position:absolute;top:-20%;bottom:-20%;left:0;width:45%;
+  background:linear-gradient(90deg,rgba(255,255,255,0),rgba(255,255,255,.42),rgba(255,255,255,0));
+  transform:translate3d(-140%,0,0) skewX(-18deg)}
+.tile.focus .shine::after{animation:sweep .7s var(--ease) .05s}
+@keyframes sweep{from{transform:translate3d(-140%,0,0) skewX(-18deg)}
+  to{transform:translate3d(330%,0,0) skewX(-18deg)}}
 .label{position:absolute;left:calc(-30*var(--u));right:calc(-30*var(--u));
   top:calc(100% + 22*var(--u));text-align:center;font-size:calc(21*var(--u));font-weight:600;
-  white-space:nowrap;opacity:0;transition:opacity .18s ease;pointer-events:none}
+  white-space:nowrap;opacity:0;pointer-events:none;
+  transform:translate3d(0,calc(-8*var(--u)),0);
+  /* azione secondaria: il nome arriva un soffio dopo il riquadro */
+  transition:opacity .2s ease .05s,transform .26s var(--enter) .05s}
+.tile.focus .label{transform:none}
 .tile.focus{z-index:5;
   transform:perspective(calc(1100*var(--u))) translate3d(0,calc(-8*var(--u)),0) scale(1.13)
             rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg))}
@@ -199,10 +257,30 @@ html.idle #saver{opacity:1}
   text-transform:uppercase;color:var(--ink-3)}
 #sndTag{font-size:calc(19*var(--u));letter-spacing:0;transition:opacity .2s ease}
 #sndTag.off{opacity:.3}
-#toast{position:absolute;left:50%;bottom:calc(70*var(--u));z-index:6;
+/* la radio: un cartellino in basso, che si fa notare solo quando cambia */
+#lofi{position:absolute;left:var(--safe);bottom:calc(22*var(--u));z-index:3;display:flex;
+  align-items:center;gap:calc(12*var(--u));height:calc(48*var(--u));
+  padding:0 calc(20*var(--u)) 0 calc(16*var(--u));border-radius:999px;
+  font-size:calc(17*var(--u));color:var(--ink-2);white-space:nowrap;
+  opacity:0;transform:translate3d(0,calc(12*var(--u)),0);
+  transition:opacity var(--slow) ease,transform var(--slow) var(--enter)}
+#lofi.on{opacity:.62;transform:none}
+#lofi.on.fresh{opacity:1}
+#lofi b{color:var(--ink);font-weight:600}
+#lofi kbd{font-family:var(--ui);font-size:.82em;font-weight:600;color:var(--ink-2);
+  border:1px solid var(--line);border-radius:calc(7*var(--u));padding:calc(1*var(--u)) calc(8*var(--u))}
+.eq{display:flex;align-items:flex-end;gap:calc(3*var(--u));height:calc(16*var(--u))}
+.eq i{width:calc(3.5*var(--u));height:100%;border-radius:calc(2*var(--u));background:var(--accent);
+  transform-origin:50% 100%;transform:scaleY(.22)}
+#lofi.playing .eq i{animation:eq 1.15s ease-in-out infinite}
+#lofi.playing .eq i:nth-child(2){animation-delay:-.4s;animation-duration:.95s}
+#lofi.playing .eq i:nth-child(3){animation-delay:-.75s;animation-duration:1.3s}
+#lofi.playing .eq i:nth-child(4){animation-delay:-.2s;animation-duration:1.05s}
+@keyframes eq{0%,100%{transform:scaleY(.22)}50%{transform:scaleY(1)}}
+html.portrait #lofi kbd{display:none}
+#toast{position:absolute;left:50%;bottom:calc(86*var(--u));z-index:6;
   transform:translate3d(-50%,calc(20*var(--u)),0);opacity:0;pointer-events:none;
   padding:calc(14*var(--u)) calc(28*var(--u));border-radius:999px;
-  background:rgba(14,17,29,.92);border:1px solid var(--line);
   font-size:calc(22*var(--u));font-weight:500;white-space:nowrap;
   transition:opacity .25s ease,transform .3s cubic-bezier(.2,.8,.2,1)}
 #toast.on{opacity:1;transform:translate3d(-50%,0,0)}
@@ -220,8 +298,11 @@ html.portrait .art{width:calc(420*var(--u))}
 
 /* ---------- resa -------------------------------------------------------- */
 html[data-perf="static"] .orb{animation:none}
+html[data-perf="static"] .eq i{animation:none!important}
 html[data-perf="static"] .o3{display:none}
-@media (prefers-reduced-motion:reduce){ .orb{animation:none!important} }
+@media (prefers-reduced-motion:reduce){
+  .orb,.tile.in,.shine::after,.eq i{animation:none!important}
+}
 </style>
 
 
@@ -267,7 +348,14 @@ body{font-family:var(--ui);color:var(--ink);
   <div class="tv">
 
 <div id="stage">
-  <div id="sky"><div class="orb o1"></div><div class="orb o2"></div><div class="orb o3"></div></div>
+  <div id="sky"><canvas id="gl"></canvas><div class="orb o1"></div><div class="orb o2"></div><div class="orb o3"></div></div>
+  <div id="grain"></div>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <filter id="lens" color-interpolation-filters="sRGB">
+      <feImage id="lensMap" x="0" y="0" width="1" height="1" result="map" preserveAspectRatio="none"/>
+      <feDisplacementMap in="SourceGraphic" in2="map" scale="34" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+  </svg>
   <div class="spill" id="spillA"></div>
   <div class="spill" id="spillB"></div>
   <div id="vignette"></div>
@@ -277,8 +365,8 @@ body{font-family:var(--ui);color:var(--ink);
   <div id="app">
     <header id="bar">
       <div id="date"></div>
-      <nav id="modes"><div id="thumb"></div></nav>
-      <div class="right">
+      <nav id="modes" class="glass"><div id="thumb"></div></nav>
+      <div class="right glass">
         <div class="wx"><span id="wxIcon"></span><b id="wxTemp">--&deg;</b><span id="wxDesc"></span></div>
         <div id="clock">--:--</div>
       </div>
@@ -300,7 +388,8 @@ body{font-family:var(--ui);color:var(--ink);
   </div>
 
   <div id="status"><span id="perfTag"></span><span id="sndTag">&#9834;</span></div>
-  <div id="toast"></div>
+  <div id="lofi" class="glass"><span class="eq"><i></i><i></i><i></i><i></i></span><span id="lofiTxt">Lofi</span><kbd>L</kbd></div>
+  <div id="toast" class="glass"></div>
 </div>
 
 <script>/* Tracciati da Simple Icons 16.37.0 — https://simpleicons.org — licenza CC0-1.0.
@@ -480,6 +569,218 @@ function toggleSound(){
 }
 
 /* ==========================================================================
+   SFONDO — uno shader solo, WebGL nudo: niente libreria da 600 KB sulla TV.
+   Rumore deformato su se stesso (domain warping): il colore scorre come seta.
+   Prende due colori vivi: la modalita' e l'app a fuoco, e ci arriva piano.
+   Tela a un quarto della risoluzione, 30 fotogrammi al secondo.
+   ========================================================================== */
+function hex3(h){ var n = parseInt(h.slice(1),16); return [(n>>16&255)/255, (n>>8&255)/255, (n&255)/255]; }
+var BG = { gl:null, a:[1,.33,.44], b:[.9,.04,.08], ca:[.2,.2,.4], cb:[.2,.2,.4], pulse:0, last:0, u:{} };
+var FRAG = [
+"#ifdef GL_FRAGMENT_PRECISION_HIGH","precision highp float;","#else","precision mediump float;","#endif",
+"uniform vec2 uRes; uniform float uT; uniform vec3 uA; uniform vec3 uB; uniform float uPulse;",
+"float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7))) * 43758.5453); }",
+"float noise(vec2 p){ vec2 i = floor(p), f = fract(p); vec2 u = f*f*(3.0-2.0*f);",
+"  return mix(mix(hash(i), hash(i+vec2(1.,0.)), u.x), mix(hash(i+vec2(0.,1.)), hash(i+vec2(1.,1.)), u.x), u.y); }",
+"float fbm(vec2 p){ float v = 0.0, a = 0.5; for (int i = 0; i < 4; i++){ v += a*noise(p); p = p*2.03 + vec2(17.3,9.1); a *= 0.5; } return v; }",
+"void main(){",
+"  vec2 uv = gl_FragCoord.xy / uRes;",
+"  vec2 p = (uv - 0.5) * vec2(uRes.x/uRes.y, 1.0) * 1.55;",
+"  float t = uT * 0.045;",
+"  vec2 q = vec2(fbm(p + vec2(0.0, t)), fbm(p + vec2(5.2, 1.3) - t));",
+"  vec2 r = vec2(fbm(p + 3.2*q + vec2(1.7, 9.2) + t*0.7), fbm(p + 3.2*q + vec2(8.3, 2.8) - t*0.6));",
+"  float f = fbm(p + 2.6*r);",
+"  vec3 col = vec3(0.020, 0.025, 0.055);",
+"  col = mix(col, uA, smoothstep(0.28, 0.95, f) * (0.58 + uPulse*0.22));",
+"  col = mix(col, vec3(0.20, 0.30, 0.95), smoothstep(0.45, 1.05, length(q)) * 0.42);",
+"  col = mix(col, uB, smoothstep(0.42, 0.95, r.x) * 0.55);",
+"  col = mix(col, vec3(0.50, 0.33, 0.92), smoothstep(0.55, 1.05, r.y) * 0.30);",
+"  col += pow(f, 3.0) * 0.20 * uA;",
+"  float vig = smoothstep(1.25, 0.25, length((uv - 0.5) * vec2(1.25, 1.0)));",
+"  col *= mix(0.40, 1.0, vig) * mix(0.62, 1.0, smoothstep(0.0, 0.65, uv.y));",
+"  gl_FragColor = vec4(col, 1.0);",
+"}"].join("\n");
+function initGL(){
+  var c = $("#gl"), gl = null;
+  try { gl = c.getContext("webgl", { antialias:false, alpha:false, depth:false, stencil:false,
+                                     powerPreference:"low-power" }); } catch(e){}
+  if (!gl) return;
+  function sh(type, src){ var s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s);
+    return gl.getShaderParameter(s, gl.COMPILE_STATUS) ? s : null; }
+  var vs = sh(gl.VERTEX_SHADER, "attribute vec2 p; void main(){ gl_Position = vec4(p, 0.0, 1.0); }");
+  var fs = sh(gl.FRAGMENT_SHADER, FRAG);
+  if (!vs || !fs) return;
+  var pr = gl.createProgram(); gl.attachShader(pr, vs); gl.attachShader(pr, fs); gl.linkProgram(pr);
+  if (!gl.getProgramParameter(pr, gl.LINK_STATUS)) return;
+  gl.useProgram(pr);
+  gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 3,-1, -1,3]), gl.STATIC_DRAW);   /* un triangolo copre tutto */
+  var loc = gl.getAttribLocation(pr, "p"); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+  ["uRes","uT","uA","uB","uPulse"].forEach(function(n){ BG.u[n] = gl.getUniformLocation(pr, n); });
+  BG.gl = gl; BG.ca = BG.a.slice(); BG.cb = BG.b.slice();
+  c.addEventListener("webglcontextlost", function(e){ e.preventDefault(); BG.gl = null;
+    document.documentElement.classList.remove("gl"); });
+  sizeGL(); drawGL(performance.now());
+  document.documentElement.classList.add("gl");
+  requestAnimationFrame(loopGL);
+}
+function sizeGL(){
+  if (!BG.gl) return;
+  var host = $("#stage"), w = host.clientWidth, h = host.clientHeight, c = $("#gl");
+  var k = Math.min(1, 520 / Math.max(w, h));
+  c.width = Math.max(2, Math.round(w*k)); c.height = Math.max(2, Math.round(h*k));
+  BG.gl.viewport(0, 0, c.width, c.height);
+}
+function drawGL(t){
+  var gl = BG.gl, c = gl.canvas, i;
+  for (i = 0; i < 3; i++){ BG.ca[i] += (BG.a[i] - BG.ca[i]) * .05; BG.cb[i] += (BG.b[i] - BG.cb[i]) * .07; }
+  BG.pulse *= .93;
+  gl.uniform2f(BG.u.uRes, c.width, c.height);
+  gl.uniform1f(BG.u.uT, t / 1000);
+  gl.uniform3f(BG.u.uA, BG.ca[0], BG.ca[1], BG.ca[2]);
+  gl.uniform3f(BG.u.uB, BG.cb[0], BG.cb[1], BG.cb[2]);
+  gl.uniform1f(BG.u.uPulse, BG.pulse);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+  BG.frames = (BG.frames || 0) + 1;
+}
+function loopGL(t){
+  if (!BG.gl) return;
+  requestAnimationFrame(loopGL);
+  if (document.hidden || t - BG.last < 32) return;
+  if (document.documentElement.getAttribute("data-perf") === "static" && BG.frames > 2 &&
+      Math.abs(BG.a[0]-BG.ca[0]) + Math.abs(BG.b[0]-BG.cb[0]) < .01) return;   /* fermo: si ridisegna solo se cambia colore */
+  BG.last = t; drawGL(t);
+}
+
+/* ==========================================================================
+   LENTE — la mappa che dice al filtro di quanto spostare ogni punto.
+   Neutra al centro; vicino al bordo curvo spinge lo sguardo verso l'interno,
+   sempre di piu' fino al bordo: e' cosi' che un vetro spesso piega cio' che
+   ha dietro. Rosso = spostamento orizzontale, verde = verticale.
+   ========================================================================== */
+function buildLens(){
+  var el = modesEl, w = Math.round(el.offsetWidth), h = Math.round(el.offsetHeight);
+  if (!w || !h || !document.documentElement.classList.contains("lens")) return;
+  var cv = document.createElement("canvas"); cv.width = w; cv.height = h;
+  var cx = cv.getContext("2d"), img = cx.createImageData(w, h), d = img.data;
+  var r = h / 2, bezel = Math.min(r * .9, 26), x, y, i = 0;
+  for (y = 0; y < h; y++) for (x = 0; x < w; x++, i += 4){
+    var px = Math.max(r, Math.min(w - r, x + .5)), dx = x + .5 - px, dy = y + .5 - r;
+    var len = Math.sqrt(dx*dx + dy*dy) || 1, edge = r - len;            /* distanza dal bordo */
+    var k = edge >= bezel ? 0 : Math.pow(1 - Math.max(0, edge) / bezel, 2);
+    d[i]   = 128 - (dx / len) * k * 127;
+    d[i+1] = 128 - (dy / len) * k * 127;
+    d[i+2] = 128; d[i+3] = 255;
+  }
+  cx.putImageData(img, 0, 0);
+  var f = document.getElementById("lensMap"), url = cv.toDataURL();
+  f.setAttribute("width", w); f.setAttribute("height", h);
+  f.setAttribute("href", url); f.setAttributeNS("http://www.w3.org/1999/xlink", "href", url);
+  window.__H.lens = w + "x" + h;
+}
+
+/* ==========================================================================
+   RADIO — una stazione lofi a volume basso mentre si sta nella Home.
+   Le stazioni arrivano da Radio Browser (gratuita, senza chiave), con quattro
+   di riserva gia' scritte. Sale piano, tace quando si apre un'app, e si
+   spegne con un tasto.
+   ========================================================================== */
+var LOFI = { on:true, el:null, idx:0, vol:.2, playing:false, blocked:false, tries:0, fade:null,
+  list:[ { n:"REYFM Lofi",        u:"https://listen.reyfm.de/lofi_128kbps.mp3" },
+         { n:"laut.fm Lofi",      u:"https://stream.laut.fm/lofi" },
+         { n:"I Love Chillhop",   u:"https://ilm.stream12.radiohost.de/ilm_ilovechillhop_mp3-192" },
+         { n:"0nlineradio Lo-Fi", u:"https://stream.0nlineradio.com/lo-fi" } ] };
+function lofiChip(txt, playing){
+  var c = $("#lofi"); c.classList.add("on", "fresh"); c.classList.toggle("playing", !!playing);
+  $("#lofiTxt").innerHTML = txt;
+  clearTimeout(LOFI.chipT); LOFI.chipT = setTimeout(function(){ c.classList.remove("fresh"); }, 4000);
+}
+function lofiFade(to, ms, then){
+  clearInterval(LOFI.fade);
+  var el = LOFI.el, from = el.volume, t0 = Date.now();
+  LOFI.fade = setInterval(function(){
+    var k = Math.min(1, (Date.now() - t0) / ms);
+    try { el.volume = from + (to - from) * k; } catch(e){}
+    if (k >= 1){ clearInterval(LOFI.fade); if (then) then(); }
+  }, 60);
+}
+function lofiPlay(){
+  var s = LOFI.list[LOFI.idx % LOFI.list.length], el = LOFI.el;
+  el.src = s.u; el.volume = 0;
+  lofiChip("<b>" + esc(s.n) + "</b> · collego…", false);
+  var p; try { p = el.play(); } catch(e){}
+  if (p && p.catch) p.catch(function(err){
+    if (err && err.name === "NotAllowedError"){ LOFI.blocked = true; lofiChip("Lofi · premi un tasto per la musica", false); }
+  });
+}
+function lofiStop(){ lofiFade(0, 500, function(){ try { LOFI.el.pause(); } catch(e){} }); LOFI.playing = false; }
+function lofiToggle(){
+  LOFI.on = !LOFI.on;
+  try { localStorage.setItem("home.lofi", LOFI.on ? "1" : "0"); } catch(e){}
+  if (LOFI.on){ LOFI.tries = 0; lofiPlay(); } else { lofiStop(); lofiChip("Lofi spenta", false); }
+}
+function lofiNext(dir){
+  if (!LOFI.on) return;
+  LOFI.idx = (LOFI.idx + dir + LOFI.list.length) % LOFI.list.length; LOFI.tries = 0;
+  try { localStorage.setItem("home.lofi.n", LOFI.list[LOFI.idx].n); } catch(e){}
+  lofiPlay();
+}
+function lofiInit(){
+  var el = LOFI.el = new Audio(); el.preload = "none";
+  try { if (localStorage.getItem("home.lofi") === "0") LOFI.on = false; } catch(e){}
+  el.addEventListener("playing", function(){
+    LOFI.playing = true; LOFI.blocked = false; LOFI.tries = 0;
+    lofiFade(LOFI.vol, 2600);
+    lofiChip("<b>" + esc(LOFI.list[LOFI.idx].n) + "</b> · lofi", true);
+  });
+  el.addEventListener("error", function(){
+    if (!LOFI.on) return;
+    LOFI.playing = false;
+    if (++LOFI.tries >= LOFI.list.length){ lofiChip("Musica non disponibile qui", false); return; }
+    LOFI.idx = (LOFI.idx + 1) % LOFI.list.length; setTimeout(lofiPlay, 700);     /* stazione muta: la prossima */
+  });
+  /* un'altra app in primo piano: silenzio. Si torna alla Home: riprende. */
+  document.addEventListener("visibilitychange", function(){
+    if (document.hidden){ try { el.pause(); } catch(e){} LOFI.playing = false; }
+    else if (LOFI.on) lofiPlay();
+  });
+  lofiStations();
+  if (LOFI.on) lofiPlay(); else lofiChip("Lofi spenta", false);
+}
+function lofiStations(){
+  function use(list){
+    if (!list || list.length < 2) return;
+    var keep = LOFI.playing ? LOFI.list[LOFI.idx] : null, saved = null;
+    try { saved = localStorage.getItem("home.lofi.n"); } catch(e){}
+    LOFI.list = list;
+    var want = keep ? keep.n : saved, at = -1;
+    list.forEach(function(s,i){ if (s.n === want) at = i; });
+    if (keep && at < 0){ LOFI.list = [keep].concat(list); at = 0; }
+    if (at >= 0) LOFI.idx = at; else if (!LOFI.playing) LOFI.idx = 0;
+  }
+  try {
+    var c = JSON.parse(localStorage.getItem("home.lofi.list") || "null");
+    if (c && Date.now() - c.t < 24*3600*1000){ use(c.d); return; }
+  } catch(e){}
+  if (typeof fetch !== "function") return;
+  fetch("https://de1.api.radio-browser.info/json/stations/search?tag=lofi&order=votes&reverse=true&limit=30&hidebroken=true&is_https=true")
+    .then(function(r){ return r.json(); }).then(function(a){
+      var seen = {}, out = [];
+      (a || []).forEach(function(s){
+        var u = s.url_resolved || "", host = u.split("/")[2];
+        if (!/^https:/.test(u) || !/^(MP3|AAC|AAC\+)$/i.test(s.codec || "") || (s.bitrate && s.bitrate < 96)) return;
+        if (!/lo-?fi|chill/i.test(s.name || "") || seen[host] || out.length >= 8) return;
+        seen[host] = 1;
+        out.push({ n: String(s.name).replace(/^I Love Music\s*-\s*/i, "").replace(/\s+/g, " ").trim().slice(0, 30), u: u });
+      });
+      if (out.length >= 2){
+        try { localStorage.setItem("home.lofi.list", JSON.stringify({ t:Date.now(), d:out })); } catch(e){}
+        use(out);
+      }
+    }).catch(function(){});
+}
+
+/* ==========================================================================
    RIQUADRI
    ========================================================================== */
 function faceHTML(a){
@@ -520,10 +821,12 @@ function renderGrid(){
   root.setProperty("--accent", m.color);
   root.setProperty("--accent-soft", rgba(m.color,.38));
   root.setProperty("--accent-tint", rgba(m.color,.15));
+  BG.a = hex3(m.color);
   grid.innerHTML = "";
   tiles = m.apps.map(function(k){ return APPS[k]; }).filter(Boolean).map(function(a,i){
     var t = document.createElement("div");
-    t.className = "tile";
+    t.className = "tile in";
+    t.style.setProperty("--d", (((i % cols) + Math.floor(i / cols)) * .028).toFixed(3) + "s");
     t.style.setProperty("--bg", a.bg); t.style.setProperty("--fg", a.fg);
     t.style.setProperty("--sc", a.color);
     t.innerHTML = '<div class="face">' + faceHTML(a) + '<div class="shine"></div></div>' +
@@ -554,6 +857,7 @@ function paintFocus(now){
   tiles.forEach(function(t,i){ t.classList.toggle("focus", i === tileIdx); });
   var t = tiles[tileIdx]; if (!t) return;
   spillTo(t.__app.color);
+  BG.b = hex3(t.__app.color); BG.pulse = 1;      /* lo sfondo risponde al fuoco */
   scrollToFocus();
   /* Il fuoco si sposta subito; lo scaffale aspetta un attimo, cosi' tenendo
      premuta una freccia non si ricostruisce a ogni passo. */
@@ -564,7 +868,7 @@ function paintFocus(now){
 var spillTop = false;
 function spillTo(hex){
   var up = spillTop ? $("#spillA") : $("#spillB"), dn = spillTop ? $("#spillB") : $("#spillA");
-  up.style.boxShadow = "inset 0 0 calc(320*var(--u)) calc(-60*var(--u)) " + rgba(hex,.40);
+  up.style.boxShadow = "inset 0 0 calc(320*var(--u)) calc(-60*var(--u)) " + rgba(hex,.30);
   up.classList.add("on"); dn.classList.remove("on"); spillTop = !spillTop;
 }
 
@@ -715,7 +1019,7 @@ function launch(){
   sndGo();
   window.__H.launched.push(a.name);
 
-  if (a.internal){ setTimeout(function(){ location.href = a.url; }, 240); return; }
+  if (a.internal){ if (LOFI.playing) lofiStop(); setTimeout(function(){ location.href = a.url; }, 240); return; }
   var svc = luna();
   if (!IS_TV || !svc){ toast("Sulla TV si apre " + a.name); return; }
 
@@ -774,6 +1078,7 @@ function discover(){
 document.addEventListener("keydown", function(e){
   var k = e.keyCode;
   if (wake()){ e.preventDefault(); return; }
+  if (LOFI.blocked && LOFI.on){ LOFI.blocked = false; lofiPlay(); }   /* il browser voleva un gesto: eccolo */
   for (var i = 0; i < MODES.length; i++){
     if (k === MODES[i].key || k === 49 + i){ setMode(i); e.preventDefault(); return; }
   }
@@ -785,6 +1090,9 @@ document.addEventListener("keydown", function(e){
     case 13: launch();   break;
     case 48: cyclePerf(); break;
     case 77: toggleSound(); break;
+    case 76: case 415: case 19: case 10252: case 179: lofiToggle(); break;   /* L, Play, Pausa */
+    case 78: case 427: case 33: lofiNext(1);  break;                         /* N, CH+ */
+    case 80: case 428: case 34: lofiNext(-1); break;                         /* P, CH- */
     case 461: case 27:                       /* indietro: si torna in cima */
       if (tileIdx !== 0){ tileIdx = 0; paintFocus(); sndMove(); } break;
     default: return;
@@ -843,42 +1151,61 @@ function loadWeather(){
 /* ==========================================================================
    RESA — se la TV fatica, lo sfondo si ferma. Il tasto 0 lo decide a mano.
    ========================================================================== */
-var LEVELS = ["glass","static"], LEVEL_NAME = { glass:"animato", static:"fermo" };
+var LEVELS = ["liquid","glass","static"], LEVEL_NAME = { liquid:"vetro liquido", glass:"vetro", static:"fermo" };
 function setPerf(level,note){
   document.documentElement.setAttribute("data-perf", level);
   $("#perfTag").textContent = note ? LEVEL_NAME[level] + " · " + note : "";
-  try { localStorage.setItem("home.perf", level); } catch(e){}
+  window.__H.perf = level;
 }
 function cyclePerf(){
   var cur = document.documentElement.getAttribute("data-perf");
-  setPerf(LEVELS[(LEVELS.indexOf(cur) + 1) % LEVELS.length], "manuale");
+  var nx = LEVELS[(LEVELS.indexOf(cur) + 1) % LEVELS.length];
+  if (nx === "liquid" && !document.documentElement.classList.contains("lens")) nx = "glass";
+  setPerf(nx, "manuale");
+  try { localStorage.setItem("home.perf", nx); } catch(e){}
 }
-function autoTune(){
+function fpsOver(ms, cb){
   var f = 0, t0 = 0;
   requestAnimationFrame(function step(t){
     if (!t0) t0 = t; f++;
-    if (t - t0 < 1500) requestAnimationFrame(step);
-    else { var fps = f*1000/(t - t0); window.__H.fps = Math.round(fps); if (fps < 26) setPerf("static","auto"); }
+    if (t - t0 < ms) requestAnimationFrame(step); else cb(f*1000/(t - t0));
+  });
+}
+/* Si parte dal vetro semplice. Se la TV fatica, tutto si ferma; se e' comoda
+   si prova la lente e la si tiene solo se regge davvero. */
+function autoTune(){
+  fpsOver(1500, function(a){
+    window.__H.fps = Math.round(a);
+    if (a < 26){ setPerf("static","auto"); return; }
+    if (a < 50 || !document.documentElement.classList.contains("lens")) return;
+    setPerf("liquid", null);
+    fpsOver(1500, function(b){ window.__H.fpsLiquid = Math.round(b); if (b < 44) setPerf("glass", null); });
   });
 }
 
 /* ==========================================================================
    AVVIO
    ========================================================================== */
-window.__H = { launched:[], found:0, fps:0,
+window.__H = { launched:[], found:0, fps:0, perf:"glass", lens:"",
+  get gl(){ return !!BG.gl; }, get glFrames(){ return BG.frames || 0; }, get lofi(){ return LOFI; },
   get focus(){ return tiles[tileIdx] && tiles[tileIdx].__app.name; },
   get count(){ return tiles.length; }, get shelf(){ return SHELF; } };
 
 (function init(){
   sizeStage();
-  window.addEventListener("resize", function(){ sizeStage(); moveThumb(); scrollToFocus(); paintShelf(); });
+  /* la lente come filtro di sfondo la sa fare solo Chromium */
+  var chromium = !!window.chrome || /Chrome\/|Web0S/.test(navigator.userAgent);
+  if (chromium && window.CSS && CSS.supports && CSS.supports("backdrop-filter","blur(1px)"))
+    document.documentElement.classList.add("lens");
+  window.addEventListener("resize", function(){ sizeStage(); sizeGL(); moveThumb(); buildLens(); scrollToFocus(); paintShelf(); });
   try {
     var saved = localStorage.getItem("home.mode");
     if (saved) MODES.forEach(function(m,i){ if (m.id === saved) modeIdx = i; });
     if (localStorage.getItem("home.snd") === "0"){ SND.on = false; $("#sndTag").classList.add("off"); }
   } catch(e){}
 
-  renderModes(); renderGrid(); tick(); loadWeather(); loadShelf(); discover(); wake();
+  renderModes(); renderGrid(); initGL(); buildLens();
+  tick(); loadWeather(); loadShelf(); discover(); wake(); lofiInit();
   setInterval(tick, 15000);
   setInterval(loadWeather, 15*60*1000);
   document.addEventListener("mousemove", wake, { passive:true });
@@ -886,11 +1213,13 @@ window.__H = { launched:[], found:0, fps:0,
 
   var sp = null;
   try { sp = localStorage.getItem("home.perf"); } catch(e){}
-  if (sp === "static") setPerf("static", null); else setTimeout(autoTune, 900);
+  if (sp && LEVELS.indexOf(sp) > -1 && !(sp === "liquid" && !document.documentElement.classList.contains("lens")))
+    setPerf(sp, null);
+  else setTimeout(autoTune, 1100);
 
   document.body.setAttribute("tabindex","-1");
   try { window.focus(); document.body.focus(); } catch(e){}
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(function(){ moveThumb(); scrollToFocus(); });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(function(){ moveThumb(); buildLens(); scrollToFocus(); });
 })();
 </script>
 
@@ -900,12 +1229,14 @@ window.__H = { launched:[], found:0, fps:0,
     <span><b>Invio</b> apri</span>
     <span><b>1&ndash;4</b> cambia modalit&agrave;</span>
     <span><b>M</b> suono</span>
+    <span><b>L</b> radio &middot; <b>N</b> stazione</span>
     <span>oppure tocca i riquadri</span>
   </div>
   <p class="note">Sul telecomando le quattro modalit&agrave; stanno sui tasti colorati.
   Qui meteo e uscite della settimana sono esempi: l&rsquo;anteprima non pu&ograve; chiamare
   servizi esterni n&eacute; aprire le app. Sulla TV arrivano da Open-Meteo e TVMaze,
-  con le locandine, e i riquadri aprono le app vere.</p>
+  con le locandine, e i riquadri aprono le app vere. Anche la radio lofi suona solo sulla TV:
+  qui l&rsquo;audio esterno &egrave; bloccato.</p>
 </div>
 </body>
 </html>

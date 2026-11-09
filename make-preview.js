@@ -66,12 +66,14 @@ ${body}
     <span><b>Invio</b> apri</span>
     <span><b>1&ndash;4</b> cambia modalit&agrave;</span>
     <span><b>M</b> suono</span>
+    <span><b>L</b> radio &middot; <b>N</b> stazione</span>
     <span>oppure tocca i riquadri</span>
   </div>
   <p class="note">Sul telecomando le quattro modalit&agrave; stanno sui tasti colorati.
   Qui meteo e uscite della settimana sono esempi: l&rsquo;anteprima non pu&ograve; chiamare
   servizi esterni n&eacute; aprire le app. Sulla TV arrivano da Open-Meteo e TVMaze,
-  con le locandine, e i riquadri aprono le app vere.</p>
+  con le locandine, e i riquadri aprono le app vere. Anche la radio lofi suona solo sulla TV:
+  qui l&rsquo;audio esterno &egrave; bloccato.</p>
 </div>
 </body>
 </html>`;

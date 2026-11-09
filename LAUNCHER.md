@@ -54,9 +54,11 @@ Il pacchetto è già in `dist/`, verificato: struttura corretta, nessun warning.
 | OK | apri |
 | Rosso / Verde / Giallo / Blu (403–406) | Coppia / Amici / Stress-free / Tutti |
 | 1 – 4 | le stesse modalità, da tastiera |
-| 0 | sfondo animato / fermo |
+| 0 | vetro liquido / vetro / fermo |
 | Indietro | torna al primo riquadro |
-| M | suono acceso / spento |
+| M | suoni dell'interfaccia accesi / spenti |
+| L, Play, Pausa | radio accesa / spenta |
+| N o CH+, P o CH− | stazione successiva / precedente |
 | *(nel Tennis)* OK | colpisci |
 | *(nel Tennis)* ◀ ▶ | mira, tenuti premuti |
 | *(nel Tennis)* Indietro | torna alla Home |
@@ -82,16 +84,86 @@ pacchetto da soli.
 Nel pacchetto non ci sono marchi di terzi: i segni disegnati sono forme
 originali.
 
-## Resa
+## Sfondo
 
-Regola di tutto il file: si animano **solo `transform` e `opacity`**. Ombre,
-bordi di luce e alone sono disegnati una volta e si accendono in dissolvenza;
-l'alone ai bordi sono due strati che si scambiano. Nessun `backdrop-filter`.
+Uno shader, in WebGL nudo: nessuna libreria. Rumore deformato su se stesso
+(*domain warping*), così il colore scorre come seta. Prende due colori vivi,
+la modalità e l'app a fuoco, e ci arriva piano; a ogni spostamento del fuoco
+dà un piccolo respiro.
 
-Se all'avvio la TV sta sotto i 26 fotogrammi al secondo, lo sfondo si ferma
-da solo. Il tasto `0` lo decide a mano.
+La tela è larga 520 punti e il browser la ingrandisce: un colore che scorre è
+liscio, quindi a un quarto della risoluzione è identico e costa un
+sedicesimo. Gira a 30 fotogrammi al secondo. Se WebGL manca restano le sfere
+in CSS; nel livello fermo si ridisegna solo quando cambia colore.
 
-### Sui numeri di FPS
+## Vetro
+
+Apple descrive il suo *Liquid Glass* solo a grandi linee: un materiale
+traslucido reso in tempo reale, che prende i colori di ciò che ha dietro,
+piega lo sfondo vicino ai bordi curvi come una lente, e ha riflessi che
+reagiscono al movimento. Sul web si approssima così, ed è quello che c'è qui:
+
+- **sfocatura e saturazione** dello sfondo con `backdrop-filter`
+- **bordo speculare**: una riga di luce in alto e una più tenue in basso, con
+  ombre interne
+- **lente**: un filtro SVG di spostamento (`feDisplacementMap`) dentro
+  `backdrop-filter`, con una mappa generata al volo sulla forma della barra.
+  Neutra al centro, spinge lo sguardo verso l'interno sempre di più fino al
+  bordo. Funziona solo su Chromium, che è il motore della TV
+- **riflesso che reagisce**: quando il fuoco arriva su un riquadro una lama
+  di luce lo attraversa una volta; col puntatore il riquadro si inclina
+
+Il vetro sta **solo su superfici piccole**: barra delle modalità, ora e
+meteo, cartellino della radio, avvisi. La sfocatura di uno sfondo che si
+muove si ricalcola a ogni fotogramma e costa in proporzione all'area: sui
+pannelli grandi della prima versione dimezzava i fotogrammi. I riquadri
+delle app restano opachi, col solo bordo di luce.
+
+Misura in rasterizzazione software, quattro giri per caso, stavolta stretti:
+
+```
+né shader né vetro      [55, 57, 57, 58]
+vetro, shader fermo     [52, 53, 53, 55]
+shader, senza vetro     [48, 49, 49, 54]
+tutto (shader + vetro)  [41, 42, 44, 44]
+shader + lente          [43, 43, 44, 45]
+```
+
+Qui anche lo shader gira sulla CPU, cioè nel caso peggiore; su una GPU vera
+a 520 punti è poca cosa. La lente non aggiunge costo misurabile.
+
+Tre livelli: **vetro liquido** (con la lente), **vetro**, **fermo**.
+All'avvio si parte dal vetro; sotto i 26 fotogrammi tutto si ferma, sopra i
+50 si prova la lente e la si tiene solo se resta sopra i 44. Il tasto `0`
+sceglie a mano e la scelta resta.
+
+## Movimento
+
+Un carattere solo, sobrio: una curva per quasi tutto
+(`cubic-bezier(.4,0,.2,1)`), entrate che decelerano, tre durate (140, 320,
+600 ms), nessun rimbalzo. Tre strati: il riquadro a fuoco che si solleva; il
+nome e il riflesso che arrivano 50 ms dopo; lo sfondo che respira. Al cambio
+di modalità i riquadri entrano a cascata dall'angolo, 28 ms a passo.
+
+Si animano **solo `transform` e `opacity`**.
+
+## Radio
+
+Una stazione lofi a volume basso mentre si sta nella Home. Parte da sola,
+sale in due secondi e mezzo fino al 20%, tace quando un'altra app va in primo
+piano e riprende al ritorno. Un cartellino in basso a sinistra dice cosa
+suona e poi si attenua.
+
+Le stazioni arrivano da [Radio Browser](https://www.radio-browser.info)
+(gratuita, senza chiave): le più votate col tag *lofi*, solo `https`, MP3 o
+AAC, una per sito, tenute in memoria 24 ore. Quattro di riserva sono già
+scritte. Una stazione muta fa passare alla successiva; se sono mute tutte si
+ferma e lo dice.
+
+**Da verificare sulla TV:** che l'audio parta da solo. Se webOS chiede un
+gesto, parte al primo tasto premuto.
+
+### Le prime misure, e perché non erano affidabili
 
 Le misure sono state fatte in rasterizzazione software su una macchina
 condivisa, e **cinque misure della stessa identica configurazione hanno dato
